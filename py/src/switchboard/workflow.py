@@ -8,8 +8,7 @@ from dataclasses import dataclass
 @dataclass
 class Registry:
     # TODO 
-    #   hammer out details
-    #   schema?
+    #   hammer out details of the schema
     contacts: dict
 
 
