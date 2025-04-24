@@ -38,7 +38,8 @@ class Context:
 #                 100, # workflow id
 #                 1 # worker id
 #             ],
-#             "success" : True
+#             "success" : True,
+#             ...some other fields maybe...
 #         }
 
 
@@ -66,6 +67,7 @@ class Workflow:
         # for any public method call, we need to determine if that step has been executed based on step idx vs cnt comparison
         # if it hasn't been executed, we push to the queue
         # if we are on the most recently identified step, we need to check if it was successful
+        # context should provide last worker success status, workflow run_id and worker run_id
         # verify run_id is not marked as complete (this should never occur but an important assertion to make)
 
     def _get_context(self, context) -> Context:
