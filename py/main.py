@@ -1,22 +1,24 @@
+import json
 from dataclasses import dataclass
+
+
+
 
 
 @dataclass
 class Registry:
-    function: str
-    trigger: str # or enum?
-    contact: dict # or obj?
+    # TODO 
+    #   hammer out details
+    #   schema?
+    contacts: dict
 
 
+@dataclass
 class Step:
-    def __init__(self, id, name, fn) -> None:
-        self.id = id if id else self._generate_id()
-        self.name = name
-        self.fn = fn
-        self.success = False
-
-    def _generate_id(self) -> int:
-        return 0
+    run_id: list[int]
+    name: str
+    fn: function
+    success: bool = False
 
 
 @dataclass
@@ -25,14 +27,32 @@ class State:
     run_id: int
 
 
+@dataclass
+class Context:
+    run_id: list[int]
+    success: bool
+
+
+# context = {
+#             "run_id": [
+#                 100, # workflow id
+#                 1 # worker id
+#             ],
+#             "success" : True
+#         }
+
+
 class Workflow:
     def __init__(self, db, context) -> None:
+        
         self.step_idx = 0
         self.step_cnt = 0
-        self.state = self._init_state(db,)
-        self.run_id = self._get_run_id(self.state)
-        self.steps = self.state["steps"]
+
+        self.db = db
         self.context = self._get_context(context)
+        
+        self.state = self._init_state(db)
+
 
         # workflow is stepped through by tracking the index (number of steps completed) and current count (current index in steps)
         # TODO
@@ -48,35 +68,50 @@ class Workflow:
         # if we are on the most recently identified step, we need to check if it was successful
         # verify run_id is not marked as complete (this should never occur but an important assertion to make)
 
-    def _get_context(self, context):
-        if not context.run_id:
-            # generate run_id
-            return
-        if context.success:
-            self.steps[-1]["success"] = True
+    def _get_context(self, context) -> Context:
+        raw = json.loads(context) 
+        try:
+            cntx = Context(raw["run_id"], raw["success"])
+        except: # newly triggered workflows wont have a run_id or success field
+            cntx = Context(self._generate_id(), False)
+
+        if cntx.run_id[0] == 0:
+            return cntx
+
+        return cntx
+        
+
+    def _init_state(self, db) -> State:
+        # read state from db with run_id
+        state = db.read(self.context.run_id[0])
+        if not state:
+            # handle new state creation (new workflow run)
+            state = State([], self.context.run_id[0])
+        if self.context.success:
+            state.steps[-1].success = True
         else:
             pass
             # apply retry logic
             # retry logic should have a default and be defined by the user
-        
-        return
-
-    def _init_state(self, db):
-        state = {"steps": [], "run_id": self.run_id}
-        # read state from db
-        self.step_idx = len(state)-1
+        self.step_idx = len(state.steps)-1
         return state
 
     def _update_state(self, step):
         self.step_idx += 1
-        self.state["steps"]
+        self.state.steps.append(step)
     
     def _update_db(self, db):
-        # write self.state to db using run_id
-        pass
-    
-    def _get_run_id(self, state):
-        pass
+        # write self.state to db using self.state.run_id
+        db.write(self.state.run_id, self.state)
+        
+
+    def _generate_id(self) -> list[int]:
+        # TODO
+        #   implement
+        return [0,0]
+
+    def _generate_worker_id(self):
+        return self.context.run_id[1]+1
 
     def _determine_step(self):
         if self.step_cnt != self.step_idx:
@@ -97,9 +132,10 @@ class Workflow:
         return self
 
     def call(self, fn):
+        self._update_db(self.db)
         if not self._determine_step():
             return self._next()
-        self._update_state(Step(None, "call", fn))
+        self._update_state(Step([self.state.run_id, self._generate_worker_id()], "call", fn))
         self._enqueue_function(fn)
         return 
 
