@@ -1,5 +1,6 @@
 import json
 from dataclasses import dataclass
+from typing import Callable
 
 
 
@@ -16,7 +17,7 @@ class Registry:
 class Step:
     run_id: list[int]
     name: str
-    fn: function
+    fn: Callable
     success: bool = False
 
 

@@ -2,7 +2,7 @@
 name = "switchboard"
 version = "0.1.0"
 description = "The Python SDK for the switchboard framework."
-authors = [{ name = "osteensco", email = "osteensco@gmail.com" }]
+authors = [{ name = "osteensco"}]
 readme = "README.md"
 requires-python = ">=3.9"
 dependencies = [
