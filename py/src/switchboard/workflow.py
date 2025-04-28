@@ -84,21 +84,23 @@ class Workflow:
             cntx = Context(raw["run_id"], raw["executed"], raw["completed"], raw["success"])
         except: 
             # newly triggered workflows wont have these fields
-            cntx = Context(self._generate_id(), True, True, True)
+            cntx = Context([0,0], True, True, True)
 
         return cntx
         
 
     def _init_state(self, db) -> State:
-        # read state from db with run_id
+
         state = db.read(self.context.run_id[0])
+        
+        # handle new state creation (new workflow run)
         if not state:
-            # handle new state creation (new workflow run)
-            state = State([], self.context.run_id[0])
+            id = self._generate_id(db)
+            state = State([], id)
+            self.context.run_id[0] = id 
             return state
 
-        # TODO 
-        # assert steps is populated
+        assert state.steps
         if self.context.executed:
             state.steps[-1].executed = True
         if self.context.completed:
@@ -115,14 +117,10 @@ class Workflow:
         self.state.steps.append(step)
     
     def _update_db(self, db):
-        # write self.state to db using self.state.run_id
         db.write(self.state.run_id, self.state)
         
-
-    def _generate_id(self) -> list[int]:
-        # TODO
-        #   implement
-        return [0,0]
+    def _generate_id(self,db) -> int:
+        return db.increment_id()
 
     def _generate_worker_id(self) -> int:
         return self.context.run_id[1]+1
@@ -159,6 +157,7 @@ class Workflow:
         return self
 
 
+
     def call(self, fn) -> Self | WaitStatus:
 
         if self._determine_step_execution(fn):
@@ -170,7 +169,6 @@ class Workflow:
         
         self._update_db(self.db)
         return WaitStatus()
-
 
     def done(self):
         return
