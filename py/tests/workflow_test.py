@@ -1,3 +1,4 @@
+import pytest
 from switchboard.workflow import State, Workflow, Context, Step
 
 
@@ -27,19 +28,49 @@ class DBMock:
 
 
 
-def test_new_Workflow():
-    context = '{}'
-    db = DBMock(None)
-    wf = Workflow(db, context)
-    expected_context = Context([1,0], True, True, True)
-    expected_state = State([],1)
-    assert wf.context == expected_context
-    assert wf.state == expected_state
+@pytest.mark.parametrize(
+        "name,db,context,expected_state,expected_context",
+        [
+            (
+                "1. Start a brand new workflow.", DBMock(None), '{}', State([],1), Context([1,0], True, True, True)
+            ),
+            (
+                "2. Workflow after executing a worker.", 
+                DBMock(State([Step([100,1],"call","http",True,False,False)],100)), 
+                '{"run_id":[100,1],"executed": true, "completed": false, "success": false }',
+                State([Step([100,1],"call","http",True,False,False)],100),
+                Context([100,1], True, False, False)
+            )
 
-def test_get_context():
+        ]
+)
+def test_new_Workflow(name, db, context, expected_state, expected_context):
+    wf = Workflow(db, context)
+    assert wf.state == expected_state
+    assert wf.context == expected_context
+
+@pytest.mark.parametrize(
+        "name,context,expected",
+        [
+            (
+                "1. Empty context.",
+                '{}',
+                Context([0,0], True, True, True)
+            ),
+            (
+                "2. Non empty context.",
+                '{"run_id": [100,1], "executed": true, "completed": true, "success": true}',
+                Context([100,1], True, True, True)
+            ),
+            # (
+            #     "3. Invalid context.",
+            #     '{"run_id": [100,1], "executed": true, "completed": False, "success": true}',
+            #     Context([100,1], True, False, True)
+            # ),
+        ]
+)
+def test_get_context(name, context, expected):
     wf = Workflow.__new__(Workflow)
-    context = '{"run_id": [100,1], "executed": true, "completed": true, "success": true}'
-    expected = Context([100,1], True, True, True)
     actual = wf._get_context(context) 
     assert actual == expected
 
@@ -62,11 +93,11 @@ def test_add_step():
     actual = wf.state
     assert actual == expected
 
-def test_generate_id(): 
-    db = DBMock(None)
+def test_generate_worker_id(): 
     wf = Workflow.__new__(Workflow)
-    expected = 1
-    actual = wf._generate_id(db)
+    wf.context = Context([100,1], True, True, True)
+    expected = 2
+    actual = wf._generate_worker_id()
     assert actual == expected
 
 def test_needs_retry():
@@ -85,9 +116,15 @@ def test_is_waiting():
     actual = wf._is_waiting()
     assert actual == expected
 
-def test_enqueue_function():
-    pass
-
+def test_determine_step_execution():
+    wf = Workflow.__new__(Workflow)
+    wf.step_idx = 0
+    wf.state = State([],100)
+    wf.context = Context([100,1], True, True, True)
+    expected = True
+    actual = wf._determine_step_execution("call", "test")
+    assert actual == expected
+    
 def test_next():
     wf = Workflow.__new__(Workflow)
     wf.step_cnt = 0
@@ -95,9 +132,14 @@ def test_next():
     assert actual == wf
     assert actual.step_cnt == 1
 
-
 def test_call():
-    pass
+    wf = Workflow.__new__(Workflow)
+    wf.step_cnt = 0
+    wf.step_idx = 0
+    wf.state = State([],100)
+    wf.context = Context([100,1], True, True, True)
+    actual = wf.call("test")
+    assert actual == wf
 
 
 

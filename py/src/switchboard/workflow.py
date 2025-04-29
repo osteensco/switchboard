@@ -135,9 +135,9 @@ class Workflow:
             return False
         return True 
 
-    def _determine_step_execution(self,fn) -> bool:
+    def _determine_step_execution(self, name, fn) -> bool:
         if not self._is_waiting():
-            self._add_step(Step([self.state.run_id, self._generate_worker_id()], "call", fn))
+            self._add_step(Step([self.state.run_id, self._generate_worker_id()], name, fn))
             return True
         if self._needs_retry():
             return True
@@ -160,7 +160,7 @@ class Workflow:
 
     def call(self, fn) -> Self | WaitStatus:
 
-        if self._determine_step_execution(fn):
+        if self._determine_step_execution("call", fn):
             # walk through orchestration steps until we are at current call
             if self.step_cnt != self.step_idx:
                 return self._next()
