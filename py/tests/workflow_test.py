@@ -36,9 +36,9 @@ class DBMock:
             ),
             (
                 "2. Workflow after executing a worker.", 
-                DBMock(State([Step([100,1],"call","http",True,False,False)],100)), 
+                DBMock(State([Step(1,"call","http",True,False,False)],100)), 
                 '{"run_id":[100,1],"executed": true, "completed": false, "success": false }',
-                State([Step([100,1],"call","http",True,False,False)],100),
+                State([Step(1,"call","http",True,False,False)],100),
                 Context([100,1], True, False, False)
             )
 
@@ -76,7 +76,7 @@ def test_get_context(name, context, expected):
 
 def test_init_state(): 
     context = Context([100,2], True, True, True)
-    expected = State([Step([100,1],"call","http",True,True,True), Step([100,2],"call","http",True,True,True)],100)
+    expected = State([Step(1,"call","http",True,True,True), Step(2,"call","http",True,True,True)],100)
     db = DBMock(expected)
     wf = Workflow.__new__(Workflow)
     wf.context = context
@@ -87,9 +87,9 @@ def test_add_step():
     wf = Workflow.__new__(Workflow)
     wf.step_idx = 0
     wf.state = State([],100)
-    wf._add_step(Step([100,1],"call","http",True,True,True))
-    wf._add_step(Step([100,2],"call","http",True,True,True))
-    expected = State([Step([100,1],"call","http",True,True,True), Step([100,2],"call","http",True,True,True)],100) 
+    wf._add_step(Step(1,"call","http",True,True,True))
+    wf._add_step(Step(2,"call","http",True,True,True))
+    expected = State([Step(1,"call","http",True,True,True), Step(2,"call","http",True,True,True)],100) 
     actual = wf.state
     assert actual == expected
 

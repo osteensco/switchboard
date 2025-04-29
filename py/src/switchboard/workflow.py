@@ -15,7 +15,7 @@ class Registry:
 
 @dataclass
 class Step:
-    run_id: list[int]
+    run_id: int
     name: str
     execution_type: str # make enum
     executed: bool = False
@@ -137,7 +137,7 @@ class Workflow:
 
     def _determine_step_execution(self, name, fn) -> bool:
         if not self._is_waiting():
-            self._add_step(Step([self.state.run_id, self._generate_worker_id()], name, fn))
+            self._add_step(Step(self._generate_worker_id(), name, fn))
             return True
         if self._needs_retry():
             return True
