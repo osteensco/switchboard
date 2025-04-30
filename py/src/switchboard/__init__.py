@@ -1,10 +1,10 @@
-from .workflow import NewWorkflow, Call, Registry
+from .workflow import NewWorkflow, Call, ParallelCall, WaitCompleted, Registry
 from .db import DB
 from .conditionals import Conditional
 
 
 
-__all__ = ["NewWorkflow", "Call", "Registry", "DB", "Conditional"]
+__all__ = ["NewWorkflow", "Call", "ParallelCall", "WaitCompleted", "Registry", "DB", "Conditional"]
 
 
 

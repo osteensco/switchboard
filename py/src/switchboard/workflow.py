@@ -22,12 +22,17 @@ class Step:
     completed: bool = False
     success: bool = False
 
+@dataclass
+class ParallelStep:
+    tasks: list[Step] 
+
+
 
 @dataclass
 class State:
     steps: list[Step]
     run_id: int
-    cache: dict = {}
+    cache: dict = {} # cache can be used to store data that is pertinent to conditional steps in a workflow.
 
 
 @dataclass
@@ -36,10 +41,14 @@ class Context:
     executed: bool
     completed: bool
     success: bool
-    cache: dict = {} # cache can be used to store data that is pertinent to conditional steps in a workflow.
+    cache: dict = {} # the context cache is used to add variables to the State cache
+
+
 
 class WaitStatus:
-    def call(self) -> Self:
+    def call(self, *args, **kargs) -> Self:
+        return self
+    def parallel_call(self, *args, **kargs) -> Self:
         return self
 
 # context = {
@@ -164,10 +173,7 @@ class Workflow:
         self.step_cnt += 1
         return self
 
-
-
     def call(self, fn) -> Self | WaitStatus:
-
         if self._determine_step_execution("call", fn):
             # walk through orchestration steps until we are at current call
             if self.step_cnt != self.step_idx:
@@ -178,6 +184,12 @@ class Workflow:
         self._update_db(self.db)
         return WaitStatus()
 
+    def parallel_call(self, functions) -> Self | WaitStatus:
+        wf = self
+        for fn in functions:
+            wf = self.call(fn)
+        return wf
+    
     def done(self):
         return
 
@@ -186,16 +198,24 @@ class Workflow:
 
 
 WORKFLOW = None
-
 def NewWorkflow(db, context):
     global WORKFLOW
     WORKFLOW = Workflow(db, context)
 
 def Call(fn):
+    global WORKFLOW
     if WORKFLOW:
-        WORKFLOW.call(fn)
+        WORKFLOW = WORKFLOW.call(fn)
     else:
-        print("A workflow needs to be created first, use switchboard.NewWorkflow to instantiate a new workflow.")
+        raise RuntimeError("Call used without an active workflow.")
 
+def ParallelCall(functions):
+    global WORKFLOW
+    if WORKFLOW:
+        WORKFLOW = WORKFLOW.parallel_call(functions)
+    else:
+        raise RuntimeError("Call used without an active workflow.")
 
+def WaitCompleted(run_id):
+    pass
 
