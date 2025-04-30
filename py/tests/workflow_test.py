@@ -28,6 +28,12 @@ class DBMock:
 
 
 
+# TODO
+#   Add tests including use of the cache
+#   Fix tests to account for singleton approach 
+
+
+
 @pytest.mark.parametrize(
         "name,db,context,expected_state,expected_context",
         [
@@ -70,7 +76,8 @@ def test_new_Workflow(name, db, context, expected_state, expected_context):
         ]
 )
 def test_get_context(name, context, expected):
-    wf = Workflow.__new__(Workflow)
+    db = DBMock(None)
+    wf = Workflow.__new__(Workflow,db,context)
     actual = wf._get_context(context) 
     assert actual == expected
 
@@ -78,13 +85,13 @@ def test_init_state():
     context = Context([100,2], True, True, True)
     expected = State([Step(1,"call","http",True,True,True), Step(2,"call","http",True,True,True)],100)
     db = DBMock(expected)
-    wf = Workflow.__new__(Workflow)
+    wf = Workflow.__new__(Workflow,db,context)
     wf.context = context
     actual = wf._init_state(db)
     assert actual == expected
 
 def test_add_step():
-    wf = Workflow.__new__(Workflow)
+    wf = Workflow.__new__(Workflow,None,None)
     wf.step_idx = 0
     wf.state = State([],100)
     wf._add_step(Step(1,"call","http",True,True,True))
@@ -94,14 +101,14 @@ def test_add_step():
     assert actual == expected
 
 def test_generate_worker_id(): 
-    wf = Workflow.__new__(Workflow)
+    wf = Workflow.__new__(Workflow,None,None)
     wf.context = Context([100,1], True, True, True)
     expected = 2
     actual = wf._generate_worker_id()
     assert actual == expected
 
 def test_needs_retry():
-    wf = Workflow.__new__(Workflow)
+    wf = Workflow.__new__(Workflow,None,None)
     context = Context([100,1], True, True, False)
     wf.context = context
     expected = True
@@ -109,7 +116,7 @@ def test_needs_retry():
     assert actual == expected
 
 def test_is_waiting():
-    wf = Workflow.__new__(Workflow)
+    wf = Workflow.__new__(Workflow,None,None)
     context = Context([100,1], True, False, False)
     wf.context = context
     expected = True
@@ -117,7 +124,7 @@ def test_is_waiting():
     assert actual == expected
 
 def test_determine_step_execution():
-    wf = Workflow.__new__(Workflow)
+    wf = Workflow.__new__(Workflow,None,None)
     wf.step_idx = 0
     wf.state = State([],100)
     wf.context = Context([100,1], True, True, True)
@@ -126,14 +133,14 @@ def test_determine_step_execution():
     assert actual == expected
     
 def test_next():
-    wf = Workflow.__new__(Workflow)
+    wf = Workflow.__new__(Workflow,None,None)
     wf.step_cnt = 0
     actual = wf._next()
     assert actual == wf
     assert actual.step_cnt == 1
 
 def test_call():
-    wf = Workflow.__new__(Workflow)
+    wf = Workflow.__new__(Workflow,None,None)
     wf.step_cnt = 0
     wf.step_idx = 0
     wf.state = State([],100)

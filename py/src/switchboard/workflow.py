@@ -27,6 +27,7 @@ class Step:
 class State:
     steps: list[Step]
     run_id: int
+    cache: dict = {}
 
 
 @dataclass
@@ -35,6 +36,7 @@ class Context:
     executed: bool
     completed: bool
     success: bool
+    cache: dict = {} # cache can be used to store data that is pertinent to conditional steps in a workflow.
 
 class WaitStatus:
     def call(self) -> Self:
@@ -51,40 +53,43 @@ class WaitStatus:
 
 
 class Workflow:
+    _instance = None
+    _initialized = False
+
+    def __new__(cls, db, context) -> Self:
+        if not cls._instance:
+            cls._instance = super().__new__(cls)
+        return cls._instance
+
     def __init__(self, db, context) -> None:
-        
+        if self._initialized:
+            return
+
         self.step_idx = 0
         self.step_cnt = 0
 
         self.db = db
         self.context = self._get_context(context)
-        
         self.state = self._init_state(db)
 
+        self._initialized = True
 
 
-        # workflow is stepped through by tracking the index (number of steps completed) and current count (current index in steps)
-        # TODO
-        #   - setup caching for conditionals, loops, etc
-        #   - ENUMS?
-
-        # read in context and state
-        # create new run_id if we don't have one
-        # populate known steps based on the state
-        # determine step_idx based on len of known steps
-        # for any public method call, we need to determine if that step has been executed based on step idx vs cnt comparison
-        # if it hasn't been executed, we push to the queue
-        # if we are on the most recently identified step, we need to check if it was successful
-        # context should provide last worker success status, workflow run_id and worker run_id
-        # verify run_id is not marked as complete (this should never occur but an important assertion to make)
 
     def _get_context(self, context) -> Context:
         raw = json.loads(context) 
+
+        # required fields
         try:
             cntx = Context(raw["run_id"], raw["executed"], raw["completed"], raw["success"])
         except: 
             # newly triggered workflows wont have these fields
             cntx = Context([0,0], True, True, True)
+        
+        # optional fields
+        if "cache" in raw:
+            for k,v in raw["cache"]:
+                cntx.cache[k] = v
 
         return cntx
         
@@ -107,6 +112,9 @@ class Workflow:
             state.steps[-1].completed = True
         if self.context.success:
             state.steps[-1].success = True
+        
+        for k,v in self.context.cache:
+            state.cache[k] = v
         
         self.step_idx = len(state.steps)-1
 
@@ -172,4 +180,22 @@ class Workflow:
 
     def done(self):
         return
+
+
+
+
+
+WORKFLOW = None
+
+def NewWorkflow(db, context):
+    global WORKFLOW
+    WORKFLOW = Workflow(db, context)
+
+def Call(fn):
+    if WORKFLOW:
+        WORKFLOW.call(fn)
+    else:
+        print("A workflow needs to be created first, use switchboard.NewWorkflow to instantiate a new workflow.")
+
+
 

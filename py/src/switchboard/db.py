@@ -1,4 +1,9 @@
-# TODO 
-#     - connector for db
-#         - need connection infor in env var of some kind
-#     - read in state
+
+
+
+class DB():
+    def __init__(self) -> None:
+        pass
+
+
+
