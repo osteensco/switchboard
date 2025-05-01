@@ -37,7 +37,7 @@ class ParallelStep:
 class State:
     steps: list[Step|ParallelStep]
     run_id: int
-    cache: dict = {} # cache can be used to store data that is pertinent to conditional steps in a workflow.
+    cache: dict # cache can be used to store data that is pertinent to conditional steps in a workflow.
 
 
 @dataclass
@@ -46,7 +46,7 @@ class Context:
     executed: bool
     completed: bool
     success: bool
-    cache: dict = {} # the context cache is used to add variables to the State cache
+    cache: dict # the context cache is used to add variables to the State cache
 
 # context = {
 #             "ids": [
@@ -112,10 +112,10 @@ class Workflow:
 
         # required fields
         try:
-            cntx = Context(raw["ids"], raw["executed"], raw["completed"], raw["success"])
+            cntx = Context(raw["ids"], raw["executed"], raw["completed"], raw["success"], {})
         except: 
             # newly triggered workflows wont have these fields
-            cntx = Context([0,0,0], True, True, True)
+            cntx = Context([0,0,0], True, True, True, {})
         
         # optional fields
         if "cache" in raw:
@@ -132,7 +132,7 @@ class Workflow:
         # handle new state creation (new workflow run)
         if not state:
             id = self._generate_id(db)
-            state = State([], id)
+            state = State([], id, {})
             self.context.ids[0] = id 
             return state
         
