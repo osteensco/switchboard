@@ -1,5 +1,8 @@
 import pytest
-from switchboard.workflow import State, Workflow, Context, Step
+from switchboard.schemas import State, Context, Step, ParallelStep
+from switchboard.workflow import Workflow, NewWorkflow, Call, ParallelCall
+
+
 
 
 
@@ -37,8 +40,7 @@ def reset_workflow_singleton():
 
 
 # TODO
-#   !!! Fix tests to account for singleton approach !!!
-#   Add tests including use of the cache
+#   Add tests for use of the cache
 #   Add tests for Parallel calls
 
 
