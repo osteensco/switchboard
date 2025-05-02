@@ -106,21 +106,31 @@ class Workflow:
         self._initialized = True
 
 
+    @classmethod
+    def _reset(cls):
+        cls._instance = None
+        cls._initialized = False
 
-    def _get_context(self, context) -> Context:
+
+    @staticmethod
+    def _get_context(context) -> Context:
         raw = json.loads(context) 
 
-        # required fields
         try:
+            # required fields
             cntx = Context(raw["ids"], raw["executed"], raw["completed"], raw["success"], {})
+            assert 2 <= len(cntx.ids) <= 3
         except: 
             # newly triggered workflows wont have these fields
-            cntx = Context([0,0,0], True, True, True, {})
+            cntx = Context([0,0,-1], True, True, True, {})
         
         # optional fields
         if "cache" in raw:
-            for k,v in raw["cache"]:
+            for k,v in raw["cache"].items():
                 cntx.cache[k] = v
+
+        if len(cntx.ids) == 2:
+            cntx.ids.append(-1)
 
         return cntx
 
@@ -204,8 +214,9 @@ class Workflow:
     def _update_db(self, db):
         db.write(self.state.run_id, self.state)
 
-
-    def _generate_id(self,db) -> int:
+    
+    @staticmethod
+    def _generate_id(db) -> int:
         return db.increment_id()
 
 
@@ -238,8 +249,9 @@ class Workflow:
             return True
         return False
 
-
-    def _enqueue_execution(self, fn):
+    
+    @staticmethod
+    def _enqueue_execution(fn):
         print(f"Enqueuing function call: {fn['id']}")
 
         # Example message schema

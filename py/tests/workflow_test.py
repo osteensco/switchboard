@@ -3,6 +3,7 @@ from switchboard.workflow import State, Workflow, Context, Step
 
 
 
+# mocks
 class DBMock: 
     def __init__(self, state: State | None) -> None:
         self.all_states, self.id_max = self._prepopulate(state)
@@ -28,31 +29,41 @@ class DBMock:
 
 
 
+# fixtures
+@pytest.fixture(autouse=True)
+def reset_workflow_singleton():
+    Workflow._reset()
+
+
+
 # TODO
+#   !!! Fix tests to account for singleton approach !!!
 #   Add tests including use of the cache
-#   Fix tests to account for singleton approach 
 #   Add tests for Parallel calls
 
 
-
 @pytest.mark.parametrize(
-        "name,db,context,expected_state,expected_context",
+        "name,state,context,expected_state,expected_context",
         [
             (
-                "1. Start a brand new workflow.", DBMock(None), '{}', State([],1,{}), Context([1,0], True, True, True,{})
+                "1. Start a brand new workflow.", None, '{}', State([],1,{}), Context([1,0,-1], True, True, True,{})
             ),
             (
                 "2. Workflow after executing a worker.", 
-                DBMock(State([Step(1,"call","http",True,False,False)],100,{})), 
-                '{"run_id":[100,1],"executed": true, "completed": false, "success": false }',
+                State([Step(1,"call","http",True,False,False)],100,{}), 
+                '{"ids": [100,1], "executed": true, "completed": false, "success": false }',
                 State([Step(1,"call","http",True,False,False)],100,{}),
-                Context([100,1], True, False, False,{})
+                Context([100,1,-1], True, False, False,{})
             )
 
         ]
 )
-def test_new_Workflow(name, db, context, expected_state, expected_context):
+def test_new_Workflow(name, state, context, expected_state, expected_context):
+    db = DBMock(state)
     wf = Workflow(db, context)
+    print(wf.state)
+    print(wf.context)
+    print(db.all_states)
     assert wf.state == expected_state
     assert wf.context == expected_context
 
