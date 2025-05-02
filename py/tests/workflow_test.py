@@ -73,16 +73,21 @@ def test_new_Workflow(name, state, context, expected_state, expected_context):
             (
                 "1. Empty context.",
                 '{}',
-                Context([0,0], True, True, True,{})
+                Context([0,0,-1], True, True, True,{})
             ),
             (
                 "2. Non empty context.",
-                '{"run_id": [100,1], "executed": true, "completed": true, "success": true}',
-                Context([100,1], True, True, True,{})
+                '{"ids": [100,1], "executed": true, "completed": true, "success": true}',
+                Context([100,1,-1], True, True, True,{})
+            ),
+            (
+                "3. Parallel task context.",
+                '{"ids": [100,2,0], "executed": true, "completed": true, "success": true}',
+                Context([100,2,0], True, True, True,{})
             ),
             # (
-            #     "3. Invalid context.",
-            #     '{"run_id": [100,1], "executed": true, "completed": False, "success": true}',
+            #     "TODO - handle an invalid context",
+            #     '{"ids": [100,1], "executed": true, "completed": False, "success": true}',
             #     Context([100,1], True, False, True)
             # ),
         ]
@@ -94,21 +99,22 @@ def test_get_context(name, context, expected):
     assert actual == expected
 
 def test_init_state(): 
-    context = Context([100,2], True, True, True,{})
+    db = DBMock(State([Step(1,"call","http",True,True,True), Step(2,"call","http",True,False,False)],100,{}))
+    wf = Workflow.__new__(Workflow,db,'{}')
+    wf.context = Context([100,2,-1], True, True, True,{}) 
     expected = State([Step(1,"call","http",True,True,True), Step(2,"call","http",True,True,True)],100,{})
-    db = DBMock(expected)
-    wf = Workflow.__new__(Workflow,db,context)
-    wf.context = context
     actual = wf._init_state(db)
     assert actual == expected
 
 def test_add_step():
     wf = Workflow.__new__(Workflow,None,None)
-    wf.step_idx = 0
-    wf.state = State([],100,{})
-    wf._add_step(Step(1,"call","http",True,True,True))
-    wf._add_step(Step(2,"call","http",True,True,True))
-    expected = State([Step(1,"call","http",True,True,True), Step(2,"call","http",True,True,True)],100,{}) 
+    wf.context = Context([1,0,-1], True, True, True,{}) 
+    wf.state = State([],1,{})
+    wf.step_idx = -1
+    wf._add_step("call", "http")
+    wf.context = Context([1,1,-1], True, True, True,{}) 
+    wf._add_step("call", "http")
+    expected = State([Step(1,"call","http",False,False,False), Step(2,"call","http",False,False,False)],1,{}) 
     actual = wf.state
     assert actual == expected
 
@@ -137,11 +143,11 @@ def test_is_waiting():
 
 def test_determine_step_execution():
     wf = Workflow.__new__(Workflow,None,None)
-    wf.step_idx = 0
+    wf.step_idx = -1
     wf.state = State([],100,{})
-    wf.context = Context([100,1], True, True, True,{})
+    wf.context = Context([100,1,-1], True, True, True,{})
     expected = True
-    actual = wf._determine_step_execution("call", "test")
+    actual = wf._determine_step_execution("call", "http")
     assert actual == expected
     
 def test_next():
@@ -153,12 +159,14 @@ def test_next():
 
 def test_call():
     wf = Workflow.__new__(Workflow,None,None)
+    wf.db = DBMock(None)
+    wf.status = "InProcess"
     wf.step_cnt = 0
-    wf.step_idx = 0
+    wf.step_idx = -1
     wf.state = State([],100,{})
-    wf.context = Context([100,1], True, True, True,{})
-    actual = wf.call("test")
-    assert actual == wf
+    wf.context = Context([100,1,-1], True, True, True,{})
+    actual = wf.call("http")
+    assert actual.status == "InProcess"
 
 def test_parallel_call():
     pass

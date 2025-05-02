@@ -136,6 +136,9 @@ class Workflow:
 
 
     def _init_state(self, db) -> State:
+        '''
+        Get the state from the database and update it based on the current context.
+        '''
 
         state = db.read(self.context.ids[0])
         
@@ -252,7 +255,7 @@ class Workflow:
     
     @staticmethod
     def _enqueue_execution(fn):
-        print(f"Enqueuing function call: {fn['id']}")
+        print(f"Enqueuing function call: {fn}")
 
         # Example message schema
         # queue.send_message({
