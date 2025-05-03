@@ -1,11 +1,16 @@
 from dataclasses import dataclass
 
 
+
+
+
 @dataclass
 class Registry:
     # TODO 
     #   hammer out details of the schema
     #   probably need a class for what will ultimately be the 'fn' argument in the Workflow methods
+    #       what information would be needed to run each type of execution?
+    #       should a trigger map to specific executions?
     contacts: dict
 
 
@@ -53,3 +58,6 @@ class Context:
 #             "success" : True,
 #             ...etc...
 #         }
+
+
+
