@@ -1,24 +1,8 @@
-from enum import Enum
+from .cloud import AWS_db_connect, Cloud, GCP_db_connect, AZURE_db_connect
 
 
 
 
-
-def AWS_connect():
-    pass
-
-def GCP_connect():
-    pass
-
-def AZURE_connect():
-    pass
-
-
-
-class Cloud(Enum):
-    AWS = 'AWS'
-    GCP = 'GCP'
-    AZURE = 'AZURE'
 
 
 
@@ -30,11 +14,11 @@ class DB():
     def _connect(self, cloud):
         match cloud:
             case Cloud.AWS:
-                AWS_connect()
+                AWS_db_connect()
             case Cloud.GCP:
-                GCP_connect()
+                GCP_db_connect()
             case Cloud.AZURE:
-                AZURE_connect()
+                AZURE_db_connect()
             case _:
                 raise ValueError
         return

@@ -1,4 +1,5 @@
 import json
+from enum import Enum
 from typing import Self
 from .schemas import State, Step, ParallelStep, Registry, Context 
 
@@ -7,12 +8,15 @@ from .schemas import State, Step, ParallelStep, Registry, Context
 
 
 
-
+class Status(Enum):
+    InProcess = 'InProcess'
+    Completed = 'Completed'
+    OutOfRetries = 'OutOfRetries'
 
 
 
 class WaitStatus:
-    def __init__(self, status) -> None:
+    def __init__(self, status: Status) -> None:
         self.status = status
 
     def call(self, *args, **kargs) -> Self:
@@ -21,12 +25,10 @@ class WaitStatus:
     def parallel_call(self, *args, **kargs) -> Self:
         return self
 
-    def done(self) -> None:
+    def done(self) -> Status:
         # TODO
         #   change return type to status codes
         return self.status
-
-
 
 
 
@@ -46,7 +48,7 @@ class Workflow:
         self.step_idx = 0
         self.step_cnt = 0
         self.curr_step = None
-        self.status = "InProcess"
+        self.status = Status.InProcess
 
         self.db = db
         self.context = self._get_context(context)
@@ -63,11 +65,20 @@ class Workflow:
 
     @staticmethod
     def _get_context(context) -> Context:
+        '''
+        Get the context from the request, ensure all required d
+        '''
+
         raw = json.loads(context) 
 
+
+            # TODO
+            #   Trigger message schema should have a unique way of identifying itself as the start of a new workflow
+            #   We should instead assert required fields without just assuming missing one or more means it's a new workflow
         try:
             # required fields
             cntx = Context(raw["ids"], raw["executed"], raw["completed"], raw["success"], {})
+            # context ids should at minimum have the run_id (0 idx) and step_id (1 idx)
             assert 2 <= len(cntx.ids) <= 3
         except: 
             # newly triggered workflows wont have these fields
@@ -77,7 +88,10 @@ class Workflow:
         if "cache" in raw:
             for k,v in raw["cache"].items():
                 cntx.cache[k] = v
-
+        # handle context without task id
+        # task id is only required for a task as part of a ParallelStep
+        # TODO
+        #   find better way to assert task id at this point in the workflow execution for requests that would require a task id 
         if len(cntx.ids) == 2:
             cntx.ids.append(-1)
 
@@ -148,6 +162,10 @@ class Workflow:
 
 
     def _add_step(self, name, *fn):
+        '''
+        Add the next step to the state. Adding an additional step to the workflow state brings the assumption that it was attempted to be executed.
+        The workflow state will not recognize that it's been executed until receiving a success response from the executor function.
+        '''
         if name == "parallel":
             step_id = self._generate_worker_id()
             task_id = 0
@@ -183,7 +201,7 @@ class Workflow:
         if self.context.executed and self.context.completed and not self.context.success:
             return True
         # if out of retries:
-        #     self.status = "OutOfRetries"
+        #     self.status = Status.OutOfRetries
         return False
 
 
@@ -249,8 +267,8 @@ class Workflow:
 
 
     def done(self):
-        if self.status == "InProcess":
-            self.status = "Completed"
+        if self.status is Status.InProcess:
+            self.status = Status.Completed
         return self.status
 
 
