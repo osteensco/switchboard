@@ -1,5 +1,5 @@
-from .cloud import AWS_db_connect, Cloud, GCP_db_connect, AZURE_db_connect
-
+from .cloud import AWS_db_connect, GCP_db_connect, AZURE_db_connect
+from .enums import Cloud
 
 
 

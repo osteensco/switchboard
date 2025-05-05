@@ -1,17 +1,12 @@
 import json
-from enum import Enum
 from typing import Self
 from .schemas import State, Step, ParallelStep, Registry, Context 
+from .enums import Status
 
 
 
 
 
-
-class Status(Enum):
-    InProcess = 'InProcess'
-    Completed = 'Completed'
-    OutOfRetries = 'OutOfRetries'
 
 
 

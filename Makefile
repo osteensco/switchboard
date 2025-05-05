@@ -5,4 +5,4 @@ default: all
 all: py
 
 py:
-	cd py && pytest
+	cd ./sdk/py && pytest

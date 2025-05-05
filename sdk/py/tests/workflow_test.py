@@ -1,4 +1,5 @@
 import pytest
+from switchboard.enums import Status
 from switchboard.schemas import State, Context, Step, ParallelStep
 from switchboard.workflow import Workflow, NewWorkflow, Call, ParallelCall
 
@@ -162,13 +163,13 @@ def test_next():
 def test_call():
     wf = Workflow.__new__(Workflow,None,None)
     wf.db = DBMock(None)
-    wf.status = "InProcess"
+    wf.status = Status.InProcess
     wf.step_cnt = 0
     wf.step_idx = -1
     wf.state = State([],100,{})
     wf.context = Context([100,1,-1], True, True, True,{})
     actual = wf.call("http")
-    assert actual.status == "InProcess"
+    assert actual.status == Status.InProcess
 
 def test_parallel_call():
     pass

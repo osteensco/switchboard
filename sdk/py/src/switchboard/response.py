@@ -1,5 +1,5 @@
-from switchboard.cloud import Cloud
-from .invocation import Invoke
+from .enums import Cloud
+from .queue import SendMessage
 
 
 # TODO
@@ -9,10 +9,13 @@ from .invocation import Invoke
 
 
 class Response():
+    '''
+    Response interface for updating the switchboard of execution, completion, and success status of a worker.
+    '''
     def __init__(self, cloud: Cloud) -> None:
         self.cloud = cloud
         self.body = self._generate_response()
-        response = Invoke(self.body, self.cloud)
+        response = SendMessage(self.body, self.cloud)
         # TODO
         #   this should return a response from the message queue
 
