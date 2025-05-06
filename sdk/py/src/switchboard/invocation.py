@@ -4,8 +4,8 @@ from .enums import Cloud
 
 
 # Interface for interacting with the switchboard invocation queue
-class SendMessage():
-    def __init__(self, body: str, cloud: Cloud) -> None:
+class Invoke():
+    def __init__(self, cloud: Cloud, body: str) -> None:
         self.publish_to_queue(cloud, body)
        
     @staticmethod

@@ -1,5 +1,5 @@
 from .enums import Cloud
-from .queue import SendMessage
+from .invocation import Invoke
 
 
 # TODO
@@ -15,7 +15,7 @@ class Response():
     def __init__(self, cloud: Cloud) -> None:
         self.cloud = cloud
         self.body = self._generate_response()
-        response = SendMessage(self.body, self.cloud)
+        response = Invoke(self.cloud, self.body)
         # TODO
         #   this should return a response from the message queue
 

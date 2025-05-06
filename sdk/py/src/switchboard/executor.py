@@ -9,6 +9,8 @@
 #
 #   
 
+# The executor's queue should be an internal implementation
+
 def switchboard_executor(context):
     pass
 

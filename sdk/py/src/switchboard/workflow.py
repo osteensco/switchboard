@@ -11,8 +11,9 @@ from .enums import Status
 
 
 class WaitStatus:
-    def __init__(self, status: Status) -> None:
+    def __init__(self, status: Status, state: State) -> None:
         self.status = status
+        self.state = state
 
     def call(self, *args, **kargs) -> Self:
         return self
@@ -70,6 +71,8 @@ class Workflow:
             # TODO
             #   Trigger message schema should have a unique way of identifying itself as the start of a new workflow
             #   We should instead assert required fields without just assuming missing one or more means it's a new workflow
+            #   We should also ignore invocations from an impossible context in init_state to ensure idempotence
+            #       - i.e. we have a context of executed=True for a step and then receive a context of executed=False for the same step
         try:
             # required fields
             cntx = Context(raw["ids"], raw["executed"], raw["completed"], raw["success"], {})
@@ -242,7 +245,7 @@ class Workflow:
         
         # when we determine the step doesn't need to be executed then the db just needs to be updated
         self._update_db(self.db)
-        return WaitStatus(self.status)
+        return WaitStatus(self.status, self.state)
 
 
     def parallel_call(self, *functions) -> Self | WaitStatus:
@@ -258,7 +261,7 @@ class Workflow:
         
         # when we determine the step doesn't need to be executed then the db just needs to be updated
         self._update_db(self.db)
-        return WaitStatus(self.status)
+        return WaitStatus(self.status, self.state)
 
 
     def done(self):
@@ -271,23 +274,42 @@ class Workflow:
 
 
 WORKFLOW = None
-def NewWorkflow(db, context):
+
+# workflow interface decorator
+def wf_interface(func):
+    def nullcheck(*args, **kargs):
+        global WORKFLOW
+        if WORKFLOW:
+            func(*args, **kargs)
+        else:
+            raise RuntimeError("Attempted to interact with the WORKFLOW without it being active.")
+    return nullcheck
+
+
+
+
+
+def InitWorkflow(db, context):
     global WORKFLOW
     WORKFLOW = Workflow(db, context)
 
+@wf_interface
 def Call(fn):
     global WORKFLOW
-    if WORKFLOW:
-        WORKFLOW = WORKFLOW.call(fn)
-    else:
-        raise RuntimeError("Call used without an active workflow.")
+    assert WORKFLOW is not None
+    WORKFLOW = WORKFLOW.call(fn)
 
+@wf_interface
 def ParallelCall(functions):
     global WORKFLOW
-    if WORKFLOW:
-        WORKFLOW = WORKFLOW.parallel_call(functions)
-    else:
-        raise RuntimeError("ParallelCall used without an active workflow.")
+    assert WORKFLOW is not None
+    WORKFLOW = WORKFLOW.parallel_call(functions)
+
+
+@wf_interface
+def GetCache():
+    assert WORKFLOW is not None
+    return WORKFLOW.state.cache
 
 
 

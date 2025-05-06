@@ -1,7 +1,7 @@
 import pytest
 from switchboard.enums import Status
 from switchboard.schemas import State, Context, Step, ParallelStep
-from switchboard.workflow import Workflow, NewWorkflow, Call, ParallelCall
+from switchboard.workflow import Workflow, InitWorkflow, Call, ParallelCall
 
 
 
