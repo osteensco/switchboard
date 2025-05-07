@@ -16,9 +16,3 @@ class Status(Enum):
     OutOfRetries = 'OutOfRetries'
 
 
-class Queue(Enum):
-    INVOCATION = "INVOCATION"
-    EXECUTOR = "EXECUTOR"
-
-
-
