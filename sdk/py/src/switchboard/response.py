@@ -1,3 +1,4 @@
+from typing import Callable
 from .enums import Cloud
 from .invocation import Invoke
 
@@ -12,10 +13,10 @@ class Response():
     '''
     Response interface for updating the switchboard of execution, completion, and success status of a worker.
     '''
-    def __init__(self, cloud: Cloud) -> None:
+    def __init__(self, cloud: Cloud, custom_queue_push: Callable | None = None) -> None:
         self.cloud = cloud
         self.body = self._generate_response()
-        response = Invoke(self.cloud, self.body)
+        response = Invoke(self.cloud, self.body, custom_queue_push)
         # TODO
         #   this should return a response from the message queue
 

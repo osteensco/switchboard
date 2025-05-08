@@ -1,3 +1,4 @@
+from abc import ABC, abstractmethod
 
 
 
@@ -25,53 +26,58 @@ def AZURE_message_push(msg: str):
     pass
 
 
-# Database Interfaces
-class AWS_DataInterface:
-    @staticmethod
-    def read(id):
+# Database Interface
+class DBInterface(ABC):
+    @abstractmethod
+    def read(self,id):
         pass
 
-    @staticmethod
-    def write(id,state):
+    @abstractmethod
+    def write(self,id,state):
         pass
 
-    @staticmethod
-    def increment_id(id):
-        pass
-
-
-class GCP_DataInterface:
-    @staticmethod
-    def read(id):
-        pass
-
-    @staticmethod
-    def write(id,state):
-        pass
-
-    @staticmethod
-    def increment_id(id):
+    @abstractmethod
+    def increment_id(self,id):
         pass
 
 
-class AZURE_DataInterface:
-    @staticmethod
-    def read(id):
+class AWS_DataInterface(DBInterface):
+    def read(self,id):
         pass
 
-    @staticmethod
-    def write(id,state):
+    def write(self,id,state):
         pass
 
-    @staticmethod
-    def increment_id(id):
+    def increment_id(self,id):
         pass
 
 
+class GCP_DataInterface(DBInterface):
+    def read(self,id):
+        pass
+
+    def write(self,id,state):
+        pass
+
+    def increment_id(self,id):
+        pass
+
+
+class AZURE_DataInterface(DBInterface):
+    def read(self,id):
+        pass
+
+    def write(self,id,state):
+        pass
+
+    def increment_id(self,id):
+        pass
 
 
 
 
+
+# Eexceptions
 class UnsupportedCloud(Exception):
     def __init__(self, message):
         super().__init__(message)

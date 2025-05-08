@@ -8,6 +8,7 @@ class Cloud(Enum):
     AWS = 'AWS'
     GCP = 'GCP'
     AZURE = 'AZURE'
+    CUSTOM = 'CUSTOM'
 
 
 class Status(Enum):
