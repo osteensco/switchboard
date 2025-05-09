@@ -1,12 +1,21 @@
-from abc import ABC, abstractmethod
-
+import boto3
 
 
 
 
 # Database connectors
 def AWS_db_connect():
-    pass
+    '''
+    requires the following env vars:
+    export AWS_ACCESS_KEY_ID=your_access_key
+    export AWS_SECRET_ACCESS_KEY=your_secret_key
+    export AWS_DEFAULT_REGION=your_region
+
+    Returns a dynamodb service resource - https://boto3.amazonaws.com/v1/documentation/api/latest/guide/resources.html#guide-resources
+
+    '''
+    return boto3.resource('dynamodb')
+
 
 def GCP_db_connect():
     pass
@@ -26,52 +35,6 @@ def AZURE_message_push(msg: str):
     pass
 
 
-# Database Interface
-class DBInterface(ABC):
-    @abstractmethod
-    def read(self,id):
-        pass
-
-    @abstractmethod
-    def write(self,id,state):
-        pass
-
-    @abstractmethod
-    def increment_id(self,id):
-        pass
-
-
-class AWS_DataInterface(DBInterface):
-    def read(self,id):
-        pass
-
-    def write(self,id,state):
-        pass
-
-    def increment_id(self,id):
-        pass
-
-
-class GCP_DataInterface(DBInterface):
-    def read(self,id):
-        pass
-
-    def write(self,id,state):
-        pass
-
-    def increment_id(self,id):
-        pass
-
-
-class AZURE_DataInterface(DBInterface):
-    def read(self,id):
-        pass
-
-    def write(self,id,state):
-        pass
-
-    def increment_id(self,id):
-        pass
 
 
 

@@ -2,13 +2,13 @@ import pytest
 from switchboard.enums import Status
 from switchboard.schemas import State, Context, Step, ParallelStep
 from switchboard.workflow import Workflow, InitWorkflow, Call, ParallelCall
-
+from switchboard.db import DB
 
 
 
 
 # mocks
-class DBMock: 
+class DBMock(DB): 
     def __init__(self, state: State | None) -> None:
         self.all_states, self.id_max = self._prepopulate(state)
 
@@ -63,7 +63,7 @@ def reset_workflow_singleton():
 )
 def test_new_Workflow(name, state, context, expected_state, expected_context):
     db = DBMock(state)
-    wf = Workflow(db, context)
+    wf = Workflow('test', db, context)
     print(wf.state)
     print(wf.context)
     print(db.all_states)
@@ -97,20 +97,20 @@ def test_new_Workflow(name, state, context, expected_state, expected_context):
 )
 def test_get_context(name, context, expected):
     db = DBMock(None)
-    wf = Workflow.__new__(Workflow,db,context)
+    wf = Workflow.__new__(Workflow,'test',db,context)
     actual = wf._get_context(context) 
     assert actual == expected
 
 def test_init_state(): 
     db = DBMock(State([Step(1,"call","http",True,True,True), Step(2,"call","http",True,False,False)],100,{}))
-    wf = Workflow.__new__(Workflow,db,'{}')
+    wf = Workflow.__new__(Workflow,'test',db,'{}')
     wf.context = Context([100,2,-1], True, True, True,{}) 
     expected = State([Step(1,"call","http",True,True,True), Step(2,"call","http",True,True,True)],100,{})
     actual = wf._init_state(db)
     assert actual == expected
 
 def test_add_step():
-    wf = Workflow.__new__(Workflow,None,None)
+    wf = Workflow.__new__(Workflow,'test',DBMock(None),'')
     wf.context = Context([1,0,-1], True, True, True,{}) 
     wf.state = State([],1,{})
     wf.step_idx = -1
@@ -122,14 +122,14 @@ def test_add_step():
     assert actual == expected
 
 def test_generate_worker_id(): 
-    wf = Workflow.__new__(Workflow,None,None)
+    wf = Workflow.__new__(Workflow,'test',DBMock(None),'')
     wf.context = Context([100,1], True, True, True,{})
     expected = 2
     actual = wf._generate_worker_id()
     assert actual == expected
 
 def test_needs_retry():
-    wf = Workflow.__new__(Workflow,None,None)
+    wf = Workflow.__new__(Workflow,'test',DBMock(None),'')
     context = Context([100,1], True, True, False,{})
     wf.context = context
     expected = True
@@ -137,7 +137,7 @@ def test_needs_retry():
     assert actual == expected
 
 def test_is_waiting():
-    wf = Workflow.__new__(Workflow,None,None)
+    wf = Workflow.__new__(Workflow,'test',DBMock(None),'')
     context = Context([100,1], True, False, False,{})
     wf.context = context
     expected = True
@@ -145,7 +145,7 @@ def test_is_waiting():
     assert actual == expected
 
 def test_determine_step_execution():
-    wf = Workflow.__new__(Workflow,None,None)
+    wf = Workflow.__new__(Workflow,'test',DBMock(None),'')
     wf.step_idx = -1
     wf.state = State([],100,{})
     wf.context = Context([100,1,-1], True, True, True,{})
@@ -154,15 +154,14 @@ def test_determine_step_execution():
     assert actual == expected
     
 def test_next():
-    wf = Workflow.__new__(Workflow,None,None)
+    wf = Workflow.__new__(Workflow,'test',DBMock(None),'')
     wf.step_cnt = 0
     actual = wf._next()
     assert actual == wf
     assert actual.step_cnt == 1
 
 def test_call():
-    wf = Workflow.__new__(Workflow,None,None)
-    wf.db = DBMock(None)
+    wf = Workflow.__new__(Workflow,'test',DBMock(None),'')
     wf.status = Status.InProcess
     wf.step_cnt = 0
     wf.step_idx = -1

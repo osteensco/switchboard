@@ -1,5 +1,7 @@
 import json
 from typing import Self
+
+from switchboard.db import DB
 from .schemas import State, Step, ParallelStep, Registry, Context 
 from .enums import Status
 
@@ -32,21 +34,22 @@ class Workflow:
     _instance = None
     _initialized = False
 
-    def __new__(cls, db, context) -> Self:
+    def __new__(cls, name: str, db: DB, context: str) -> Self:
         if not cls._instance:
             cls._instance = super().__new__(cls)
         return cls._instance
 
-    def __init__(self, db, context) -> None:
+    def __init__(self, name: str, db: DB, context: str) -> None:
         if self._initialized:
             return
-
+        
+        self.name = name
         self.step_idx = 0
         self.step_cnt = 0
         self.curr_step = None
         self.status = Status.InProcess
 
-        self.db = db
+        self.db = db.interface
         self.context = self._get_context(context)
         self.state = self._init_state(db)
 
@@ -102,6 +105,7 @@ class Workflow:
         '''
 
         state = db.read(self.context.ids[0])
+        assert isinstance(state, State)
         
         # handle new state creation (new workflow run)
         if not state:
@@ -180,7 +184,7 @@ class Workflow:
 
 
     def _update_db(self, db):
-        db.write(self.state.run_id, self.state)
+        db.write(self.name, self.state)
 
     
     @staticmethod
@@ -289,9 +293,9 @@ def wf_interface(func):
 
 
 
-def InitWorkflow(db, context):
+def InitWorkflow(name, db, context):
     global WORKFLOW
-    WORKFLOW = Workflow(db, context)
+    WORKFLOW = Workflow(name, db, context)
 
 @wf_interface
 def Call(fn):

@@ -40,6 +40,13 @@ class State:
     run_id: int
     cache: dict # cache can be used to store data that is pertinent to conditional steps in a workflow.
 
+    def to_dict(self):
+        return {
+                "run_id": self.run_id,
+                "steps": self.steps,
+                "cache": self.cache
+                }
+
 
 @dataclass
 class Context:

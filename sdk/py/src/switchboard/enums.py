@@ -16,4 +16,8 @@ class Status(Enum):
     Completed = 'Completed'
     OutOfRetries = 'OutOfRetries'
 
+class TableName(Enum):
+    Dynamodb = 'dynamodb'
+
+
 
