@@ -1,5 +1,5 @@
 from botocore.utils import ClientError
-from .schemas import State
+from .schemas import NewState, State
 from .enums import TableName, Cloud
 from .cloud import (
         AWS_db_connect,
@@ -8,8 +8,7 @@ from .cloud import (
         UnsupportedCloud
         )
 from abc import ABC, abstractmethod
-import boto3
-
+from boto3.dynamodb.conditions import Key
 
 
 
@@ -31,13 +30,13 @@ class DBInterface(ABC):
     Example:
         ```python 
         class CustomInterface(DBInterface):
-            def read(self, id):
+            def read(self, name, id):
                 # Custom read logic 
 
-            def write(self, id, state):
+            def write(self, name, state):
                 # Custom write logic
 
-            def increment_id(self, id):
+            def increment_id(self, name, id):
                 # Custom increment logic
 
         db = CustomInterface(redis.Redis(host='myendpoint', port=6379))
@@ -48,15 +47,15 @@ class DBInterface(ABC):
         self.conn = conn
 
     @abstractmethod
-    def read(self, name: str, id: int):
+    def read(self, name: str, id: int) -> State | None:
         pass
 
     @abstractmethod
-    def write(self, name: str, state: State):
+    def write(self, state: State):
         pass
 
     @abstractmethod
-    def increment_id(self, name: str, id: int):
+    def increment_id(self, name: str, id: int) -> int:
         pass
 
 
@@ -64,34 +63,48 @@ class DBInterface(ABC):
 class AWS_DataInterface(DBInterface):
     '''
     Default database interface for AWS. Uses dynamodb.
+
+    Table Schema:
+        {
+            "name":        "string",   // Partition key — represents the workflow name
+            "run_id":      "number",   // Sort key — monotonically increasing run ID within each name
+            "steps":       "list",     // List of steps or tasks executed during the run and the status of each
+            "cache":       "map"       // Dictionary-like structure storing any cached data or intermediate results
+        }
+
     '''
     def read(self,name,id):
         tbl = self.get_table()
+        state = None
         try:
             response = tbl.get_item(Key={"name": name, "run_id": id})
         except ClientError as err:
             raise Exception(
-                "Couldn't get state for run_id %s from table %s. %s: %s",
+                "%s - Couldn't get state for run_id %s from table %s. %s: %s",
+                name,
                 id,
                 tbl.table_name,
                 err.response["Error"]["Code"],
                 err.response["Error"]["Message"],
             )
         else:
-            return response["Item"]
+            state = NewState(response["Item"])
+        finally:
+            return state
 
-    def write(self,name,state):
+    def write(self,state):
         tbl = self.get_table()
         try:
             response = tbl.update_item(
-                Key={"name": name, "run_id": state.run_id},
+                Key={"name": state.name, "run_id": state.run_id},
                 UpdateExpression="set steps=:steps, cache=:cache",
                 ExpressionAttributeValues={":steps": state.steps, ":cache": state.cache},
             )
         except ClientError as err:
            raise Exception(
-                "Couldn't update state for run_id %s to table %s. %s: %s",
-                id,
+                "%s - Couldn't update state for run_id %s to table %s. %s: %s",
+                state.name,
+                state.run_id,
                 tbl.table_name,
                 err.response["Error"]["Code"],
                 err.response["Error"]["Message"],
@@ -101,34 +114,43 @@ class AWS_DataInterface(DBInterface):
             
 
     def increment_id(self,name,id):
-        pass
+        tbl = self.get_table()
+        response = tbl.query(
+            KeyConditionExpression=Key('name').eq(name),
+            ScanIndexForward=False,  
+            Limit=1 
+        )
 
-    def get_table(self,table=TableName.Dynamodb):
+        items = response.get('Items', [])
+        latest_run_id = items[0]['run_id'] if items else 0
+        return latest_run_id + 1
+
+    def get_table(self,table=TableName.SwitchboardState):
         tbl = self.conn.Table(table)
         return tbl
 
 
 
-class GCP_DataInterface(DBInterface):
-    def read(self,name,id):
-        pass
-
-    def write(self,name,state):
-        pass
-
-    def increment_id(self,name,id):
-        pass
-
-
-class AZURE_DataInterface(DBInterface):
-    def read(self,name,id):
-        pass
-
-    def write(self,name,state):
-        pass
-
-    def increment_id(self,name,id):
-        pass
+# class GCP_DataInterface(DBInterface):
+#     def read(self,name,id):
+#         pass
+#
+#     def write(self,name,state):
+#         pass
+#
+#     def increment_id(self,name,id):
+#         pass
+#
+#
+# class AZURE_DataInterface(DBInterface):
+#     def read(self,name,id):
+#         pass
+#
+#     def write(self,name,state):
+#         pass
+#
+#     def increment_id(self,name,id):
+#         pass
 
 
 # SDK database interface
@@ -139,12 +161,12 @@ class DB():
                 case Cloud.AWS:
                     conn = AWS_db_connect()
                     return AWS_DataInterface(conn)
-                case Cloud.GCP:
-                    conn = GCP_db_connect()
-                    return GCP_DataInterface(conn)
-                case Cloud.AZURE:
-                    conn = AZURE_db_connect()
-                    return AZURE_DataInterface(conn)
+                # case Cloud.GCP:
+                #     conn = GCP_db_connect()
+                #     return GCP_DataInterface(conn)
+                # case Cloud.AZURE:
+                #     conn = AZURE_db_connect()
+                #     return AZURE_DataInterface(conn)
                 case Cloud.CUSTOM:
                     assert custom_interface
                     return custom_interface

@@ -17,7 +17,7 @@ class Status(Enum):
     OutOfRetries = 'OutOfRetries'
 
 class TableName(Enum):
-    Dynamodb = 'dynamodb'
+    SwitchboardState = 'SwitchboardState'
 
 
 

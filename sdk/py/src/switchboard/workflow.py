@@ -1,7 +1,7 @@
 import json
 from typing import Self
 
-from switchboard.db import DB
+from switchboard.db import DB, DBInterface
 from .schemas import State, Step, ParallelStep, Registry, Context 
 from .enums import Status
 
@@ -51,7 +51,7 @@ class Workflow:
 
         self.db = db.interface
         self.context = self._get_context(context)
-        self.state = self._init_state(db)
+        self.state = self._init_state(self.db)
 
         self._initialized = True
 
@@ -63,7 +63,7 @@ class Workflow:
 
 
     @staticmethod
-    def _get_context(context) -> Context:
+    def _get_context(context: str) -> Context:
         '''
         Get the context from the request, ensure all required d
         '''
@@ -99,18 +99,18 @@ class Workflow:
         return cntx
 
 
-    def _init_state(self, db) -> State:
+    def _init_state(self, db: DBInterface) -> State:
         '''
         Get the state from the database and update it based on the current context.
         '''
 
-        state = db.read(self.context.ids[0])
-        assert isinstance(state, State)
-        
-        # handle new state creation (new workflow run)
-        if not state:
+        state = db.read(self.name, self.context.ids[0])
+        if state:
+            assert isinstance(state, State) 
+        else:
+            # handle new state creation (new workflow run)
             id = self._generate_id(db)
-            state = State([], id, {})
+            state = State(self.name, id, [], {})
             self.context.ids[0] = id 
             return state
         
@@ -183,13 +183,12 @@ class Workflow:
         self.curr_step = self.state.steps[self.step_idx]
 
 
-    def _update_db(self, db):
-        db.write(self.name, self.state)
+    def _update_db(self, db: DBInterface):
+        db.write(self.state)
 
     
-    @staticmethod
-    def _generate_id(db) -> int:
-        return db.increment_id()
+    def _generate_id(self, db: DBInterface) -> int:
+        return db.increment_id(self.name, self.state.run_id)
 
 
     def _generate_worker_id(self) -> int:

@@ -36,16 +36,13 @@ class ParallelStep:
 
 @dataclass
 class State:
-    steps: list[Step|ParallelStep]
+    name: str
     run_id: int
+    steps: list[Step|ParallelStep]
     cache: dict # cache can be used to store data that is pertinent to conditional steps in a workflow.
 
-    def to_dict(self):
-        return {
-                "run_id": self.run_id,
-                "steps": self.steps,
-                "cache": self.cache
-                }
+def NewState(dict) -> State:
+    return State(dict["name"], dict["run_id"], dict["steps"], dict["cache"])
 
 
 @dataclass
