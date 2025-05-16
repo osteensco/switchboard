@@ -15,22 +15,23 @@ class Response():
     Response interface for updating the switchboard of execution, completion, and success status of a worker.
     '''
     def __init__(self, endpoint: str, cloud: Cloud, custom_queue_push: Callable | None = None) -> None:
-        self.cloud = cloud
-        self.custom = custom_queue_push
-        self.body = self._generate_response()
-        self.endpoint = endpoint
+        self._cloud = cloud
+        self._custom = custom_queue_push
+        self._endpoint = endpoint
+    
+    def build(self, dict: dict={}):
+        self._body = self._create_default_body() | dict
 
     def send(self):
-        body = json.dumps(self.body)
-        response = Invoke(self.cloud, self.endpoint, body, self.custom)
-        # TODO
-        #   this should return a response from the message queue
-        assert response
+        assert hasattr(self, 'body'), "Must call build() method on Response object prior to calling send()."
+        body = json.dumps(self._body)
+        response = Invoke(self._cloud, self._endpoint, body, self._custom)
+
         return response
 
-    def _generate_response(self) -> dict:
+    def _create_default_body(self) -> dict:
         '''
-        Create a json string containing necessary fields
+        Create a dictionary containing necessary fields
         '''
         return {
                 # TODO 

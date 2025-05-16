@@ -36,11 +36,11 @@ def AWS_message_push(endpoint: str, msg: str) -> dict:
     except Exception as e:
         raise e
 
-def GCP_message_push(msg: str):
-    pass
+def GCP_message_push(msg: str) -> dict:
+    return {}
 
-def AZURE_message_push(msg: str):
-    pass
+def AZURE_message_push(msg: str) -> dict:
+    return {}
 
 
 

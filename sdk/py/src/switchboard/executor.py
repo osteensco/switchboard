@@ -1,4 +1,4 @@
-
+from switchboard.invocation import Invoke
 
 
 
@@ -9,14 +9,20 @@
 #
 #   
 
-# The executor's queue should be an internal implementation
+# The executor's queue should be an internal implementation always (no custom queue)
+
+
 
 def switchboard_execute(context):
     pass
 
 
-def push_to_executor(context):
-    pass
+def push_to_executor(cloud, body) -> dict:
+    # get endpoint from db?
+    ep = ""
+
+    response = Invoke(cloud, ep, body)
+    return response
 
 
 

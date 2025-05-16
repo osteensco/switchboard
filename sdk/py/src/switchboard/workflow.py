@@ -2,8 +2,9 @@ import json
 from typing import Self
 
 from switchboard.db import DB, DBInterface
+from switchboard.executor import push_to_executor
 from .schemas import State, Step, ParallelStep, Registry, Context 
-from .enums import Status
+from .enums import Cloud, Status
 
 
 
@@ -34,15 +35,16 @@ class Workflow:
     _instance = None
     _initialized = False
 
-    def __new__(cls, name: str, db: DB, context: str) -> Self:
+    def __new__(cls, cloud: Cloud, name: str, db: DB, context: str) -> Self:
         if not cls._instance:
             cls._instance = super().__new__(cls)
         return cls._instance
 
-    def __init__(self, name: str, db: DB, context: str) -> None:
+    def __init__(self, cloud: Cloud, name: str, db: DB, context: str) -> None:
         if self._initialized:
             return
         
+        self.cloud = cloud
         self.name = name
         self.step_idx = 0
         self.step_cnt = 0
@@ -222,9 +224,8 @@ class Workflow:
 
     
     @staticmethod
-    def _enqueue_execution(fn):
-        print(f"Enqueuing function call: {fn}")
-
+    def _enqueue_execution(cloud, fn):
+        push_to_executor(cloud, fn)
         # Example message schema
         # queue.send_message({
         #     "function_id": fn["id"],
@@ -244,7 +245,7 @@ class Workflow:
                 return self._next()
             
             # we don't need to update the db until after a successful execution
-            self._enqueue_execution(fn)
+            self._enqueue_execution(self.cloud, fn)
         
         # when we determine the step doesn't need to be executed then the db just needs to be updated
         self._update_db(self.db)
@@ -260,7 +261,7 @@ class Workflow:
             
             # we don't need to update the db until after a successful execution
             for fn in functions:
-                self._enqueue_execution(fn)
+                self._enqueue_execution(self.cloud, fn)
         
         # when we determine the step doesn't need to be executed then the db just needs to be updated
         self._update_db(self.db)
@@ -285,16 +286,16 @@ def wf_interface(func):
         if WORKFLOW:
             func(*args, **kargs)
         else:
-            raise RuntimeError("Attempted to interact with the WORKFLOW without it being active.")
+            raise RuntimeError("Attempted to interact with the WORKFLOW without it being active. Make sure you call the InitWorkflow() function before calling this function.")
     return nullcheck
 
 
 
 
 
-def InitWorkflow(name, db, context):
+def InitWorkflow(cloud: Cloud, name: str, db: DB, context: str):
     global WORKFLOW
-    WORKFLOW = Workflow(name, db, context)
+    WORKFLOW = Workflow(cloud, name, db, context)
 
 @wf_interface
 def Call(fn):
