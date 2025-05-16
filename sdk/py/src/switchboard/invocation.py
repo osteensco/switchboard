@@ -1,5 +1,13 @@
 from typing import Callable
-from .cloud import AWS_message_push, GCP_message_push, AZURE_message_push, UnsupportedCloud
+from .cloud import (
+    AWS_message_push,
+    AWS_find_invocation_endpoint,
+    GCP_message_push, 
+    GCP_find_invocation_endpoint, 
+    AZURE_message_push, 
+    AZURE_find_invocation_endpoint,
+    UnsupportedCloud
+        )
 from .enums import Cloud
 
 
@@ -21,7 +29,19 @@ def Invoke(cloud: Cloud, endpoint: str, body: str, custom_queue_push: Callable |
     return
 
 
-
+def discover_invocation_endpoint(cloud: Cloud, name: str) -> str:
+    match cloud:
+        case Cloud.AWS:
+            return AWS_find_invocation_endpoint(name)
+        case Cloud.GCP:
+            return GCP_find_invocation_endpoint(name)
+        case Cloud.AZURE:
+            return AZURE_find_invocation_endpoint(name)
+        case Cloud.CUSTOM:
+            return ""
+        case _:
+            raise UnsupportedCloud(f"Cannot discover endpoint of invocation queue for unsupported cloud: {cloud}")
+    return
 
 
 

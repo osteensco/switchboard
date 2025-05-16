@@ -1,5 +1,7 @@
 from dataclasses import dataclass
 
+from switchboard.enums import Cloud, CloudResource, CloudResourceType
+
 
 
 
@@ -51,7 +53,8 @@ class Context:
     executed: bool
     completed: bool
     success: bool
-    cache: dict # the context cache is used to add variables to the State cache
+    # cache is used to add variables to the State cache. this can be defined in the switchboard response object body.
+    cache: dict 
 
 # context = {
 #             "ids": [
@@ -62,6 +65,15 @@ class Context:
 #             "success" : True,
 #             ...etc...
 #         }
+
+# dataclass for cloud endpoints.
+#
+@dataclass
+class Endpoint:
+    url: str
+    cloud: Cloud
+    resource: CloudResource
+    resource_type: CloudResourceType
 
 
 
