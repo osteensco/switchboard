@@ -23,23 +23,27 @@ class DBInterface(ABC):
             This will be available to interact with via `self.conn` when implementing the required methods of this interface.
 
     Subclasses must implement the following methods:
-        - read(id): Retrieves the state associated with the given `run id`.
-        - write(id, state): Stores or updates the `State` associated with the given `run id`.
-        - increment_id(id): Atomically increment a counter to generate the `step id` in a given workflow.
+        - read(name, id): Retrieves the state associated with the given `name` and `run id`.
+        - write(state): Stores or updates the `State` associated with the workflow `name` and `run_id`.
+        - increment_id(name): Atomically increment a counter to generate the `run_id` for a given workflow identified by `name`.
 
     Example:
         ```python 
+        import redis
+        from switchbord import DBInterface, DB, Cloud
+
         class CustomInterface(DBInterface):
             def read(self, name, id):
                 # Custom read logic 
 
-            def write(self, name, state):
+            def write(self, state):
                 # Custom write logic
 
-            def increment_id(self, name, id):
+            def increment_id(self, name):
                 # Custom increment logic
 
-        db = CustomInterface(redis.Redis(host='myendpoint', port=6379))
+        conn = CustomInterface(redis.Redis(host='myendpoint', port=6379))
+        db = DB(Cloud.CUSTOM, conn)
         ```
     '''
     def __init__(self, conn) -> None:
@@ -55,7 +59,7 @@ class DBInterface(ABC):
         pass
 
     @abstractmethod
-    def increment_id(self, name: str, id: int) -> int:
+    def increment_id(self, name: str) -> int:
         pass
 
 
@@ -113,7 +117,7 @@ class AWS_DataInterface(DBInterface):
             assert response['ResponseMetadata']['HTTPStatusCode'] == 200
             
 
-    def increment_id(self,name,id):
+    def increment_id(self,name):
         tbl = self.get_table()
         response = tbl.query(
             KeyConditionExpression=Key('name').eq(name),
@@ -153,8 +157,12 @@ class AWS_DataInterface(DBInterface):
 #         pass
 
 
-# SDK database interface
+# SDK database interface initializer
 class DB():
+    '''
+    Class for establishing a connection for switchboard to interface with. switchboard comes with a default interface for each cloud provider.
+    Use the custom_interface arg to pass in your own custom interface.
+    '''
     def __init__(self, cloud: Cloud, custom_interface: DBInterface | None = None) -> None:
         def _connect(cloud: Cloud) -> DBInterface:
             match cloud:

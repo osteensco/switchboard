@@ -25,8 +25,16 @@ def AZURE_db_connect():
 
 
 # Message queue publishers
-def AWS_message_push(msg: str):
-    pass
+def AWS_message_push(endpoint: str, msg: str) -> dict:
+    sqs = boto3.client("sqs")
+    try:
+        response = sqs.send_message(
+            QueueUrl=endpoint,
+            MessageBody=msg
+        )
+        return response
+    except Exception as e:
+        raise e
 
 def GCP_message_push(msg: str):
     pass

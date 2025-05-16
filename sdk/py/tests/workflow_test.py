@@ -27,7 +27,7 @@ class DBMockInterface(DBInterface):
     def write(self, state):
         self.all_states[id] = state
 
-    def increment_id(self, name, id):
+    def increment_id(self, name):
         self.id_max += 1
         return self.id_max
 

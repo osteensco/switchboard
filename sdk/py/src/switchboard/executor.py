@@ -11,7 +11,11 @@
 
 # The executor's queue should be an internal implementation
 
-def switchboard_executor(context):
+def switchboard_execute(context):
+    pass
+
+
+def push_to_executor(context):
     pass
 
 
