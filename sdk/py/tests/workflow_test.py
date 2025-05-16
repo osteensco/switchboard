@@ -1,14 +1,14 @@
 import pytest
-from switchboard.enums import Status
+from switchboard.enums import Status, Cloud
 from switchboard.schemas import State, Context, Step, ParallelStep
 from switchboard.workflow import Workflow, InitWorkflow, Call, ParallelCall
-from switchboard.db import DB
+from switchboard.db import DBInterface, DB
 
 
 
 
 # mocks
-class DBMock(DB): 
+class DBMockInterface(DBInterface): 
     def __init__(self, state: State | None) -> None:
         self.all_states, self.id_max = self._prepopulate(state)
 
@@ -17,19 +17,22 @@ class DBMock(DB):
             return {state.run_id: state}, state.run_id
         return {}, 0
         
-    def read(self, id):
+    def read(self, name, id):
         try:
             state = self.all_states[id]
             return state
         except KeyError:
             return None
 
-    def write(self, id, state):
+    def write(self, state):
         self.all_states[id] = state
 
-    def increment_id(self):
+    def increment_id(self, name, id):
         self.id_max += 1
         return self.id_max
+
+
+
 
 
 
@@ -49,24 +52,22 @@ def reset_workflow_singleton():
         "name,state,context,expected_state,expected_context",
         [
             (
-                "1. Start a brand new workflow.", None, '{}', State([],1,{}), Context([1,0,-1], True, True, True,{})
+                "1. Start a brand new workflow.", None, '{}', State('test',1,[],{}), Context([1,0,-1], True, True, True,{})
             ),
             (
                 "2. Workflow after executing a worker.", 
-                State([Step(1,"call","http",True,False,False)],100,{}), 
+                State('test',100,[Step(1,"call","http",True,False,False)],{}), 
                 '{"ids": [100,1], "executed": true, "completed": false, "success": false }',
-                State([Step(1,"call","http",True,False,False)],100,{}),
+                State('test',100,[Step(1,"call","http",True,False,False)],{}),
                 Context([100,1,-1], True, False, False,{})
             )
 
         ]
 )
 def test_new_Workflow(name, state, context, expected_state, expected_context):
-    db = DBMock(state)
+    db = DB(Cloud.CUSTOM,DBMockInterface(state))
     wf = Workflow('test', db, context)
-    print(wf.state)
-    print(wf.context)
-    print(db.all_states)
+
     assert wf.state == expected_state
     assert wf.context == expected_context
 
@@ -96,40 +97,41 @@ def test_new_Workflow(name, state, context, expected_state, expected_context):
         ]
 )
 def test_get_context(name, context, expected):
-    db = DBMock(None)
+    db = DB(Cloud.CUSTOM, DBMockInterface(None))
     wf = Workflow.__new__(Workflow,'test',db,context)
     actual = wf._get_context(context) 
     assert actual == expected
 
 def test_init_state(): 
-    db = DBMock(State([Step(1,"call","http",True,True,True), Step(2,"call","http",True,False,False)],100,{}))
+    db = DB(Cloud.CUSTOM, DBMockInterface(State('test',100,[Step(1,"call","http",True,True,True), Step(2,"call","http",True,False,False)],{})))
     wf = Workflow.__new__(Workflow,'test',db,'{}')
+    wf.name = 'test'
     wf.context = Context([100,2,-1], True, True, True,{}) 
-    expected = State([Step(1,"call","http",True,True,True), Step(2,"call","http",True,True,True)],100,{})
-    actual = wf._init_state(db)
+    expected = State('test',100,[Step(1,"call","http",True,True,True), Step(2,"call","http",True,True,True)],{})
+    actual = wf._init_state(db.interface)
     assert actual == expected
 
 def test_add_step():
-    wf = Workflow.__new__(Workflow,'test',DBMock(None),'')
+    wf = Workflow.__new__(Workflow,'test',DB(Cloud.CUSTOM, DBMockInterface(None)),'')
     wf.context = Context([1,0,-1], True, True, True,{}) 
-    wf.state = State([],1,{})
+    wf.state = State('test',1,[],{})
     wf.step_idx = -1
     wf._add_step("call", "http")
     wf.context = Context([1,1,-1], True, True, True,{}) 
     wf._add_step("call", "http")
-    expected = State([Step(1,"call","http",False,False,False), Step(2,"call","http",False,False,False)],1,{}) 
+    expected = State('test',1,[Step(1,"call","http",False,False,False), Step(2,"call","http",False,False,False)],{}) 
     actual = wf.state
     assert actual == expected
 
 def test_generate_worker_id(): 
-    wf = Workflow.__new__(Workflow,'test',DBMock(None),'')
+    wf = Workflow.__new__(Workflow,'test',DB(Cloud.CUSTOM, DBMockInterface(None)),'')
     wf.context = Context([100,1], True, True, True,{})
     expected = 2
     actual = wf._generate_worker_id()
     assert actual == expected
 
 def test_needs_retry():
-    wf = Workflow.__new__(Workflow,'test',DBMock(None),'')
+    wf = Workflow.__new__(Workflow,'test',DB(Cloud.CUSTOM, DBMockInterface(None)),'')
     context = Context([100,1], True, True, False,{})
     wf.context = context
     expected = True
@@ -137,7 +139,7 @@ def test_needs_retry():
     assert actual == expected
 
 def test_is_waiting():
-    wf = Workflow.__new__(Workflow,'test',DBMock(None),'')
+    wf = Workflow.__new__(Workflow,'test',DB(Cloud.CUSTOM, DBMockInterface(None)),'')
     context = Context([100,1], True, False, False,{})
     wf.context = context
     expected = True
@@ -145,27 +147,28 @@ def test_is_waiting():
     assert actual == expected
 
 def test_determine_step_execution():
-    wf = Workflow.__new__(Workflow,'test',DBMock(None),'')
+    wf = Workflow.__new__(Workflow,'test',DB(Cloud.CUSTOM, DBMockInterface(None)),'')
     wf.step_idx = -1
-    wf.state = State([],100,{})
+    wf.state = State('test',1,[],{})
     wf.context = Context([100,1,-1], True, True, True,{})
     expected = True
     actual = wf._determine_step_execution("call", "http")
     assert actual == expected
     
 def test_next():
-    wf = Workflow.__new__(Workflow,'test',DBMock(None),'')
+    wf = Workflow.__new__(Workflow,'test',DB(Cloud.CUSTOM, DBMockInterface(None)),'')
     wf.step_cnt = 0
     actual = wf._next()
     assert actual == wf
     assert actual.step_cnt == 1
 
 def test_call():
-    wf = Workflow.__new__(Workflow,'test',DBMock(None),'')
+    wf = Workflow.__new__(Workflow,'test',DB(Cloud.CUSTOM, DBMockInterface(None)),'')
+    wf.db = DB(Cloud.CUSTOM, DBMockInterface(None)).interface
     wf.status = Status.InProcess
     wf.step_cnt = 0
     wf.step_idx = -1
-    wf.state = State([],100,{})
+    wf.state = State('test',100,[],{})
     wf.context = Context([100,1,-1], True, True, True,{})
     actual = wf.call("http")
     assert actual.status == Status.InProcess

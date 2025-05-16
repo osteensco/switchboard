@@ -188,7 +188,7 @@ class Workflow:
 
     
     def _generate_id(self, db: DBInterface) -> int:
-        return db.increment_id(self.name, self.state.run_id)
+        return db.increment_id(self.name, self.context.ids[0])
 
 
     def _generate_worker_id(self) -> int:

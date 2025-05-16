@@ -3,7 +3,7 @@ from .schemas import Registry
 from .db import DB
 from .response import Response
 from .invocation import Invoke
-from .cloud import DBInterface
+from .db import DBInterface
 
 
 
