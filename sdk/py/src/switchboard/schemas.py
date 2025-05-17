@@ -47,15 +47,6 @@ def NewState(dict) -> State:
     return State(dict["name"], dict["run_id"], dict["steps"], dict["cache"])
 
 
-@dataclass
-class Context:
-    ids: list[int]
-    executed: bool
-    completed: bool
-    success: bool
-    # cache is used to add variables to the State cache. this can be defined in the switchboard response object body.
-    cache: dict 
-
 # context = {
 #             "ids": [
 #                 100, # run id
@@ -65,6 +56,15 @@ class Context:
 #             "success" : True,
 #             ...etc...
 #         }
+@dataclass
+class Context:
+    ids: list[int]
+    executed: bool
+    completed: bool
+    success: bool
+    # cache is used to add variables to the State cache. this can be defined in the switchboard response object body.
+    cache: dict 
+
 
 # dataclass for cloud endpoints.
 #

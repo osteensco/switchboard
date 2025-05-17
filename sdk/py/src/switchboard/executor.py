@@ -8,12 +8,13 @@ from switchboard.cloud import (
 
 
 
-# The switchboard executor function will be wrapped in a simple serverless function call as demonstrated below.
-#
-#   def lambda_handler(event, context):
-#       return switchboard_executor(context)
-#
-#   
+# TODO 
+#   Determine how to handle pubsub pattern
+#   ParallelStep does this already in a way, but consider the use case below 
+#       https://docs.aws.amazon.com/prescriptive-guidance/latest/modernization-integrating-microservices/pub-sub.html
+#       Replacing these implementations with switchboard would require additional SQS or SNS queue(s) from the executor -> microservice
+#           This migration requirement is in conflict with the goals of this framework
+#           Should switchboard provide batteries included queues + compute scaffolding to alleviate this sort of thing? Is it even a real problem?
 
 
 
@@ -42,6 +43,12 @@ def push_to_executor(cloud: Cloud, name: str, body: str) -> dict:
 
 
 
+# The switchboard executor function will be wrapped in a simple serverless function call as demonstrated below.
+#
+#   def lambda_handler(event, context):
+#       return switchboard_executor(context)
+#
+#   
 def switchboard_execute(context):
     pass
 
