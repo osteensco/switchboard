@@ -26,7 +26,7 @@ def Invoke(cloud: Cloud, endpoint: str, body: str, custom_queue_push: Callable |
             return custom_queue_push(body)
         case _:
             raise UnsupportedCloud(f"Cannot push message to invocation queue of unsupported cloud: {cloud}")
-    return
+    return {}
 
 
 def discover_invocation_endpoint(cloud: Cloud, name: str) -> str:
@@ -41,7 +41,7 @@ def discover_invocation_endpoint(cloud: Cloud, name: str) -> str:
             return ""
         case _:
             raise UnsupportedCloud(f"Cannot discover endpoint of invocation queue for unsupported cloud: {cloud}")
-    return
+    return ""
 
 
 

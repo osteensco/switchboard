@@ -1,6 +1,5 @@
 import json
 from typing import Self
-
 from switchboard.db import DB, DBInterface
 from switchboard.executor import push_to_executor
 from .schemas import State, Step, ParallelStep, Registry, Context 
@@ -9,7 +8,8 @@ from .enums import Cloud, Status
 
 
 
-
+#TODO
+#   add logging and log sink
 
 
 
@@ -24,10 +24,10 @@ class WaitStatus:
     def parallel_call(self, *args, **kargs) -> Self:
         return self
 
-    def done(self) -> Status:
+    def done(self) -> int:
         # TODO
-        #   change return type to status codes
-        return self.status
+        #   log status
+        return 200
 
 
 
@@ -224,13 +224,9 @@ class Workflow:
 
     
     @staticmethod
-    def _enqueue_execution(cloud, fn):
-        push_to_executor(cloud, fn)
-        # Example message schema
-        # queue.send_message({
-        #     "function_id": fn["id"],
-        #     "execution_type": "http"
-        # })
+    def _enqueue_execution(cloud, name, msg_body):
+        push_to_executor(cloud, name, msg_body)
+
 
 
     def _next(self) -> Self:
@@ -245,7 +241,10 @@ class Workflow:
                 return self._next()
             
             # we don't need to update the db until after a successful execution
-            self._enqueue_execution(self.cloud, fn)
+            # TODO
+            #   fix msg body
+            #   should contain appropriate context
+            self._enqueue_execution(self.cloud, self.name, fn)
         
         # when we determine the step doesn't need to be executed then the db just needs to be updated
         self._update_db(self.db)
@@ -261,7 +260,10 @@ class Workflow:
             
             # we don't need to update the db until after a successful execution
             for fn in functions:
-                self._enqueue_execution(self.cloud, fn)
+                # TODO
+                #   fix msg body
+                #   should contain appropriate context
+                self._enqueue_execution(self.cloud, self.name, fn)
         
         # when we determine the step doesn't need to be executed then the db just needs to be updated
         self._update_db(self.db)
@@ -271,7 +273,9 @@ class Workflow:
     def done(self):
         if self.status is Status.InProcess:
             self.status = Status.Completed
-        return self.status
+        # TODO
+        #   log status
+        return 200
 
 
 

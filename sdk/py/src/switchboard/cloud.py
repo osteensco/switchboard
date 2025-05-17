@@ -56,6 +56,17 @@ def AZURE_find_invocation_endpoint(name: str) -> str:
     return ""
 
 
+# Executor queue endpoint discovery
+def AWS_find_executor_endpoint(name: str) -> str:
+    #TODO 
+    #   implement me
+    return ""
+
+def GCP_find_executor_endpoint(name: str) -> str:
+    return ""
+
+def AZURE_find_executor_endpoint(name: str) -> str:
+    return ""
 
 
 # Eexceptions
