@@ -1,3 +1,4 @@
+import json
 from switchboard.enums import Cloud
 from switchboard.invocation import Invoke
 from switchboard.cloud import (
@@ -34,9 +35,13 @@ def discover_executor_endpoint(cloud: Cloud, name: str) -> str:
 
 
 
-def push_to_executor(cloud: Cloud, name: str, body: str) -> dict:
+def push_to_executor(cloud: Cloud, name: str, body: str, pubsub: bool=False) -> dict:
 
     ep = discover_executor_endpoint(cloud, name)
+    if pubsub:
+        pubsub_body = json.loads(body)
+        pubsub_body['pubsub'] = True
+        body = json.dumps(pubsub_body)
 
     response = Invoke(cloud, ep, body)
     return response
@@ -46,10 +51,19 @@ def push_to_executor(cloud: Cloud, name: str, body: str) -> dict:
 # The switchboard executor function will be wrapped in a simple serverless function call as demonstrated below.
 #
 #   def lambda_handler(event, context):
-#       return switchboard_executor(context)
-#
-#   
+#       try:
+#           status = switchboard_execute(context)
+#       except Exception as e:
+#           status = 400
+#       finally:
+#           return status
+
 def switchboard_execute(context):
+    # look up endpoint in database and push context to it
+    # if context['pubsub']:
+    #     collect all parallel steps
+    #     once collected push to pubsub queue
+
     pass
 
 

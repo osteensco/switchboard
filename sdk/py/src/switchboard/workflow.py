@@ -9,6 +9,8 @@ from .enums import Cloud, Status
 
 
 #TODO
+#   fn and *functions argument need a dataclass and/or custom typing
+#       this schema needs to be ironed out
 #   add logging and log sink
 
 
@@ -224,8 +226,8 @@ class Workflow:
 
     
     @staticmethod
-    def _enqueue_execution(cloud, name, msg_body):
-        push_to_executor(cloud, name, msg_body)
+    def _enqueue_execution(cloud: Cloud, name: str, msg_body: str, pubsub: bool=False):
+        push_to_executor(cloud, name, msg_body, pubsub)
 
 
 
@@ -251,7 +253,7 @@ class Workflow:
         return WaitStatus(self.status, self.state)
 
 
-    def parallel_call(self, *functions) -> Self | WaitStatus:
+    def parallel_call(self, *functions, pubsub: bool=False) -> Self | WaitStatus:
         if self._determine_step_execution("parallel", *functions):
             assert isinstance(self.curr_step, ParallelStep)
             # walk through orchestration steps until we are at current call
@@ -263,7 +265,7 @@ class Workflow:
                 # TODO
                 #   fix msg body
                 #   should contain appropriate context
-                self._enqueue_execution(self.cloud, self.name, fn)
+                self._enqueue_execution(self.cloud, self.name, fn, pubsub)
         
         # when we determine the step doesn't need to be executed then the db just needs to be updated
         self._update_db(self.db)
@@ -308,7 +310,7 @@ def Call(fn):
     WORKFLOW = WORKFLOW.call(fn)
 
 @wf_interface
-def ParallelCall(functions):
+def ParallelCall(functions, ):
     global WORKFLOW
     assert WORKFLOW is not None
     WORKFLOW = WORKFLOW.parallel_call(functions)
