@@ -1,4 +1,6 @@
 from typing import Callable
+
+from switchboard.db import DBInterface
 from .cloud import (
     AWS_message_push,
     AWS_find_invocation_endpoint,
@@ -8,7 +10,7 @@ from .cloud import (
     AZURE_find_invocation_endpoint,
     UnsupportedCloud
         )
-from .enums import Cloud
+from .enums import Cloud, SwitchboardComponent
 
 
 
@@ -29,19 +31,8 @@ def Invoke(cloud: Cloud, endpoint: str, body: str, custom_queue_push: Callable |
     return {}
 
 
-def discover_invocation_endpoint(cloud: Cloud, name: str) -> str:
-    match cloud:
-        case Cloud.AWS:
-            return AWS_find_invocation_endpoint(name)
-        case Cloud.GCP:
-            return GCP_find_invocation_endpoint(name)
-        case Cloud.AZURE:
-            return AZURE_find_invocation_endpoint(name)
-        case Cloud.CUSTOM:
-            return ""
-        case _:
-            raise UnsupportedCloud(f"Cannot discover endpoint of invocation queue for unsupported cloud: {cloud}")
-    return ""
+def discover_invocation_endpoint(db: DBInterface, name: str) -> str:
+    return db.get_endpoint(name, SwitchboardComponent.InvocationQueue)
 
 
 

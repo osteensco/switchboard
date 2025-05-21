@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from switchboard.enums import Cloud, CloudResource, CloudResourceType
+from switchboard.enums import Cloud, CloudResource, CloudResourceType, SwitchboardComponent
 
 
 
@@ -67,9 +67,9 @@ class Context:
 
 
 # dataclass for cloud endpoints.
-#
 @dataclass
 class Endpoint:
+    component: SwitchboardComponent
     url: str
     cloud: Cloud
     resource: CloudResource

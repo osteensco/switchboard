@@ -44,7 +44,13 @@ class Status(Enum):
 
 class TableName(Enum):
     SwitchboardState = 'SwitchboardState'
+    # table for discoverable resources. see schemas.Endpoint.
     SwitchboardResources = 'SwitchboardResources'
 
+
+
+class SwitchboardComponent(Enum):
+    InvocationQueue = 'InvocationQueue'
+    ExecutorQueue = 'ExecutorQueue'
 
 

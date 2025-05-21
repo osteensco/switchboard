@@ -226,8 +226,10 @@ class Workflow:
 
     
     @staticmethod
-    def _enqueue_execution(cloud: Cloud, name: str, msg_body: str, pubsub: bool=False):
-        push_to_executor(cloud, name, msg_body, pubsub)
+    def _enqueue_execution(cloud: Cloud, db: DBInterface, name: str, msg_body: str, pubsub: bool=False):
+        resp = push_to_executor(cloud, db, name, msg_body, pubsub)
+        # TODO
+        #   log response
 
 
 
@@ -246,7 +248,7 @@ class Workflow:
             # TODO
             #   fix msg body
             #   should contain appropriate context
-            self._enqueue_execution(self.cloud, self.name, fn)
+            self._enqueue_execution(self.cloud, self.db, self.name, fn)
         
         # when we determine the step doesn't need to be executed then the db just needs to be updated
         self._update_db(self.db)
@@ -264,8 +266,10 @@ class Workflow:
             for fn in functions:
                 # TODO
                 #   fix msg body
-                #   should contain appropriate context
-                self._enqueue_execution(self.cloud, self.name, fn, pubsub)
+                #       should contain appropriate context
+                #       pubsub field should be added prior to _enqueue_execution() call
+                #           alleviates the need for the pubsub argument
+                self._enqueue_execution(self.cloud, self.db, self.name, fn, pubsub)
         
         # when we determine the step doesn't need to be executed then the db just needs to be updated
         self._update_db(self.db)
@@ -300,8 +304,17 @@ def wf_interface(func):
 
 
 def InitWorkflow(cloud: Cloud, name: str, db: DB, context: str):
+    '''
+    Initialize the Workflow singleton. The Workflow acts as the orchestration engine for switchboard. 
+        Args:
+            cloud: The cloud provider being used. See switchboard.Cloud.
+            name: The name of the Worflow. Used to differentiate between workflows in the database.
+            db: The DB object. Must be initialized before passing in to the Workflow. See switchboard.DB.
+            context: The context of the Workflow. This typically represents the step the Workflow needs to pick up at. See swithcboard.Context.
+    '''
     global WORKFLOW
     WORKFLOW = Workflow(cloud, name, db, context)
+
 
 @wf_interface
 def Call(fn):
@@ -309,11 +322,12 @@ def Call(fn):
     assert WORKFLOW is not None
     WORKFLOW = WORKFLOW.call(fn)
 
+
 @wf_interface
-def ParallelCall(functions, ):
+def ParallelCall(*functions, pubsub=False):
     global WORKFLOW
     assert WORKFLOW is not None
-    WORKFLOW = WORKFLOW.parallel_call(functions)
+    WORKFLOW = WORKFLOW.parallel_call(*functions, pubsub)
 
 
 @wf_interface

@@ -1,10 +1,12 @@
 import json
-from switchboard.enums import Cloud
+from switchboard.db import DBInterface
+from switchboard.enums import Cloud, SwitchboardComponent
 from switchboard.invocation import Invoke
 from switchboard.cloud import (
         AWS_find_executor_endpoint, 
         AZURE_find_executor_endpoint, 
-        GCP_find_executor_endpoint
+        GCP_find_executor_endpoint,
+        UnsupportedCloud
 )
 
 
@@ -27,17 +29,15 @@ def discover_executor_endpoint(cloud: Cloud, name: str) -> str:
             return GCP_find_executor_endpoint(name)
         case Cloud.AZURE:
             return AZURE_find_executor_endpoint(name)
-        case Cloud.CUSTOM:
-            return ""
         case _:
             raise UnsupportedCloud(f"Cannot discover endpoint of invocation queue for unsupported cloud: {cloud}")
-    return ""
 
 
 
-def push_to_executor(cloud: Cloud, name: str, body: str, pubsub: bool=False) -> dict:
 
-    ep = discover_executor_endpoint(cloud, name)
+def push_to_executor(cloud: Cloud, db: DBInterface, name: str, body: str, pubsub: bool=False) -> dict:
+
+    ep = db.get_endpoint(name, SwitchboardComponent.ExecutorQueue)
     if pubsub:
         pubsub_body = json.loads(body)
         pubsub_body['pubsub'] = True

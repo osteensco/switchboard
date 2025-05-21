@@ -1,6 +1,6 @@
 from botocore.utils import ClientError
 from .schemas import NewState, State
-from .enums import TableName, Cloud
+from .enums import SwitchboardComponent, TableName, Cloud
 from .cloud import (
         AWS_db_connect,
         GCP_db_connect, 
@@ -61,6 +61,14 @@ class DBInterface(ABC):
     @abstractmethod
     def increment_id(self, name: str) -> int:
         pass
+    
+    @abstractmethod
+    def get_endpoint(self, name: str, component: SwitchboardComponent) -> str:
+        pass
+    
+    @abstractmethod
+    def get_table(self, table: TableName):
+        pass
 
 
 
@@ -68,13 +76,23 @@ class AWS_DataInterface(DBInterface):
     '''
     Default database interface for AWS. Uses dynamodb.
 
-    Table Schema:
-        {
+    Table Schemas:
+        ```js
+        SwitchboardState: {
             "name":        "string",   // Partition key — represents the workflow name
             "run_id":      "number",   // Sort key — monotonically increasing run ID within each name
             "steps":       "list",     // List of steps or tasks executed during the run and the status of each
             "cache":       "map"       // Dictionary-like structure storing any cached data or intermediate results
         }
+
+        SwitchboardResources: {
+            "component":        "string",   // The type of component (see enums.SwitchboardComponent)
+            "url":              "string",   // The endpoint url
+            "cloud":            "string",   // The cloud provider (see enums.Cloud)
+            "resource":         "string",   // The specific resource being used for the component (see enums.CloudResource)
+            "resource_type":    "string"    // The type of resource the component is (see enums.CloudResourceType)
+        }
+        ```
 
     '''
     def read(self,name,id):
@@ -128,6 +146,23 @@ class AWS_DataInterface(DBInterface):
         items = response.get('Items', [])
         latest_run_id = items[0]['run_id'] if items else 0
         return latest_run_id + 1
+
+
+    def get_endpoint(self, name, component) -> str:
+        tbl = self.get_table(TableName.SwitchboardResources)
+        try:
+            ep = tbl.get_item(Key={"component": component, "name": name})
+        except ClientError as err:
+            raise Exception(
+                "%s - Couldn't get endpoint for %s from table %s. %s: %s",
+                name,
+                component,
+                tbl.table_name,
+                err.response["Error"]["Code"],
+                err.response["Error"]["Message"],
+            )
+        return ep
+
 
     def get_table(self,table=TableName.SwitchboardState):
         tbl = self.conn.Table(table)
