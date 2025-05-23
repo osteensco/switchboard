@@ -3,11 +3,8 @@ from typing import Callable
 from switchboard.db import DBInterface
 from .cloud import (
     AWS_message_push,
-    AWS_find_invocation_endpoint,
     GCP_message_push, 
-    GCP_find_invocation_endpoint, 
     AZURE_message_push, 
-    AZURE_find_invocation_endpoint,
     UnsupportedCloud
         )
 from .enums import Cloud, SwitchboardComponent

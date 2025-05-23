@@ -3,9 +3,6 @@ from switchboard.db import DBInterface
 from switchboard.enums import Cloud, SwitchboardComponent
 from switchboard.invocation import Invoke
 from switchboard.cloud import (
-        AWS_find_executor_endpoint, 
-        AZURE_find_executor_endpoint, 
-        GCP_find_executor_endpoint,
         UnsupportedCloud
 )
 
@@ -21,27 +18,11 @@ from switchboard.cloud import (
 
 
 
-def discover_executor_endpoint(cloud: Cloud, name: str) -> str:
-    match cloud:
-        case Cloud.AWS:
-            return AWS_find_executor_endpoint(name)
-        case Cloud.GCP:
-            return GCP_find_executor_endpoint(name)
-        case Cloud.AZURE:
-            return AZURE_find_executor_endpoint(name)
-        case _:
-            raise UnsupportedCloud(f"Cannot discover endpoint of invocation queue for unsupported cloud: {cloud}")
 
 
-
-
-def push_to_executor(cloud: Cloud, db: DBInterface, name: str, body: str, pubsub: bool=False) -> dict:
+def push_to_executor(cloud: Cloud, db: DBInterface, name: str, body: str) -> dict:
 
     ep = db.get_endpoint(name, SwitchboardComponent.ExecutorQueue)
-    if pubsub:
-        pubsub_body = json.loads(body)
-        pubsub_body['pubsub'] = True
-        body = json.dumps(pubsub_body)
 
     response = Invoke(cloud, ep, body)
     return response
@@ -59,10 +40,17 @@ def push_to_executor(cloud: Cloud, db: DBInterface, name: str, body: str, pubsub
 #           return status
 
 def switchboard_execute(context):
-    # look up endpoint in database and push context to it
-    # if context['pubsub']:
-    #     collect all parallel steps
-    #     once collected push to pubsub queue
+# Potential task categories that the executor should handle
+#   [ ] http endpoint
+#   [ ] compute (via sdk)
+#   [ ] job (via sdk)
+#   [ ] message queue
+#   [ ] storage/DB operation (via sdk)
+#   [ ] ML/Data Pipeline (via sdk)
+# For initial support, focus on http and message cloud native message queues
+
+
+
 
     pass
 

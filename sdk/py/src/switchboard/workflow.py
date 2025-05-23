@@ -226,8 +226,8 @@ class Workflow:
 
     
     @staticmethod
-    def _enqueue_execution(cloud: Cloud, db: DBInterface, name: str, msg_body: str, pubsub: bool=False):
-        resp = push_to_executor(cloud, db, name, msg_body, pubsub)
+    def _enqueue_execution(cloud: Cloud, db: DBInterface, name: str, msg_body: str):
+        resp = push_to_executor(cloud, db, name, msg_body)
         # TODO
         #   log response
 
@@ -265,11 +265,11 @@ class Workflow:
             # we don't need to update the db until after a successful execution
             for fn in functions:
                 # TODO
-                #   fix msg body
-                #       should contain appropriate context
-                #       pubsub field should be added prior to _enqueue_execution() call
-                #           alleviates the need for the pubsub argument
-                self._enqueue_execution(self.cloud, self.db, self.name, fn, pubsub)
+                #   figure out `fn` schema
+                #   add context field and populate with current context
+                #   add pubsub field based on pubsub argument of this function
+
+                self._enqueue_execution(self.cloud, self.db, self.name, fn)
         
         # when we determine the step doesn't need to be executed then the db just needs to be updated
         self._update_db(self.db)
