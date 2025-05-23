@@ -1,5 +1,5 @@
 import pytest
-from switchboard.enums import Status, Cloud, SwitchboardComponent, TableName
+from switchboard.enums import Status, Cloud, StepType, SwitchboardComponent, TableName
 from switchboard.schemas import State, Context, Step, ParallelStep
 from switchboard.workflow import Workflow, InitWorkflow, Call, ParallelCall
 from switchboard.db import DBInterface, DB
@@ -64,9 +64,9 @@ def reset_workflow_singleton():
             ),
             (
                 "2. Workflow after executing a worker.", 
-                State('test',100,[Step(1,"call","http",True,False,False)],{}), 
+                State('test',100,[Step(1,"http",True,False,False)],{}), 
                 '{"ids": [100,1], "executed": true, "completed": false, "success": false }',
-                State('test',100,[Step(1,"call","http",True,False,False)],{}),
+                State('test',100,[Step(1,"http",True,False,False)],{}),
                 Context([100,1,-1], True, False, False,{})
             )
 
@@ -111,11 +111,11 @@ def test_get_context(name, context, expected):
     assert actual == expected
 
 def test_init_state(): 
-    db = DB(Cloud.CUSTOM, DBMockInterface(State('test',100,[Step(1,"call","http",True,True,True), Step(2,"call","http",True,False,False)],{})))
+    db = DB(Cloud.CUSTOM, DBMockInterface(State('test',100,[Step(1,"http",True,True,True), Step(2,"http",True,False,False)],{})))
     wf = Workflow.__new__(Workflow, Cloud.CUSTOM, 'test',db,'{}')
     wf.name = 'test'
     wf.context = Context([100,2,-1], True, True, True,{}) 
-    expected = State('test',100,[Step(1,"call","http",True,True,True), Step(2,"call","http",True,True,True)],{})
+    expected = State('test',100,[Step(1,"http",True,True,True), Step(2,"http",True,True,True)],{})
     actual = wf._init_state(db.interface)
     assert actual == expected
 
@@ -124,10 +124,10 @@ def test_add_step():
     wf.context = Context([1,0,-1], True, True, True,{}) 
     wf.state = State('test',1,[],{})
     wf.step_idx = -1
-    wf._add_step("call", "http")
+    wf._add_step(StepType.Call, "http")
     wf.context = Context([1,1,-1], True, True, True,{}) 
-    wf._add_step("call", "http")
-    expected = State('test',1,[Step(1,"call","http",False,False,False), Step(2,"call","http",False,False,False)],{}) 
+    wf._add_step(StepType.Call, "http")
+    expected = State('test',1,[Step(1,"http",False,False,False), Step(2,"http",False,False,False)],{}) 
     actual = wf.state
     assert actual == expected
 
@@ -135,7 +135,7 @@ def test_generate_worker_id():
     wf = Workflow.__new__(Workflow, Cloud.CUSTOM, 'test',DB(Cloud.CUSTOM, DBMockInterface(None)),'')
     wf.context = Context([100,1], True, True, True,{})
     expected = 2
-    actual = wf._generate_worker_id()
+    actual = wf._generate_step_id()
     assert actual == expected
 
 def test_needs_retry():
@@ -160,7 +160,7 @@ def test_determine_step_execution():
     wf.state = State('test',1,[],{})
     wf.context = Context([100,1,-1], True, True, True,{})
     expected = True
-    actual = wf._determine_step_execution("call", "http")
+    actual = wf._determine_step_execution(StepType.Call, "http")
     assert actual == expected
     
 def test_next():

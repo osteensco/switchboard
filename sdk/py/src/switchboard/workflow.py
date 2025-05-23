@@ -3,7 +3,8 @@ from typing import Self
 from switchboard.db import DB, DBInterface
 from switchboard.executor import push_to_executor
 from .schemas import State, Step, ParallelStep, Registry, Context 
-from .enums import Cloud, Status
+from .enums import Cloud, Status, StepType
+from switchboard import enums
 
 
 
@@ -167,21 +168,21 @@ class Workflow:
         return state
 
 
-    def _add_step(self, name, *fn):
+    def _add_step(self, name: StepType, *fn):
         '''
         Add the next step to the state. Adding an additional step to the workflow state brings the assumption that it was attempted to be executed.
         The workflow state will not recognize that it's been executed until receiving a success response from the executor function.
         '''
-        if name == "parallel":
-            step_id = self._generate_worker_id()
+        if name == StepType.Parallel:
+            step_id = self._generate_step_id()
             task_id = 0
             tasks = []
             for f in fn:
-                tasks.append(Step(step_id,"call",f,task_id=task_id))
+                tasks.append(Step(step_id,f,task_id=task_id))
                 task_id += 1
             self.state.steps.append(ParallelStep(step_id, tasks))
         else:
-            self.state.steps.append(Step(self._generate_worker_id(), name, fn[0]))
+            self.state.steps.append(Step(self._generate_step_id(), fn[0]))
 
         self.step_idx += 1
         self.curr_step = self.state.steps[self.step_idx]
@@ -195,7 +196,7 @@ class Workflow:
         return db.increment_id(self.name)
 
 
-    def _generate_worker_id(self) -> int:
+    def _generate_step_id(self) -> int:
         return self.context.ids[1]+1
 
 
@@ -216,7 +217,7 @@ class Workflow:
         return True 
 
 
-    def _determine_step_execution(self, name: str, *fn: str) -> bool:
+    def _determine_step_execution(self, name: StepType, *fn: str) -> bool:
         if not self._is_waiting():
             self._add_step(name, *fn)
             return True
@@ -239,7 +240,7 @@ class Workflow:
 
 
     def call(self, fn) -> Self | WaitStatus:
-        if self._determine_step_execution("call", fn):
+        if self._determine_step_execution(StepType.Call, fn):
             # walk through orchestration steps until we are at current call
             if self.step_cnt != self.step_idx:
                 return self._next()
@@ -256,7 +257,7 @@ class Workflow:
 
 
     def parallel_call(self, *functions, pubsub: bool=False) -> Self | WaitStatus:
-        if self._determine_step_execution("parallel", *functions):
+        if self._determine_step_execution(StepType.Parallel, *functions):
             assert isinstance(self.curr_step, ParallelStep)
             # walk through orchestration steps until we are at current call
             if self.step_cnt != self.step_idx:
@@ -264,6 +265,7 @@ class Workflow:
             
             # we don't need to update the db until after a successful execution
             for fn in functions:
+                
                 # TODO
                 #   figure out `fn` schema
                 #   add context field and populate with current context

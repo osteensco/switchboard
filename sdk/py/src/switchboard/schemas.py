@@ -19,8 +19,7 @@ class Registry:
 @dataclass
 class Step:
     step_id: int
-    name: str
-    execution_type: str # make enum
+    resource_info: str
     executed: bool = False
     completed: bool = False
     success: bool = False

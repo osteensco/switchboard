@@ -4,6 +4,11 @@ from enum import Enum
 
 
 
+class StepType(Enum):
+    Call = "Call"
+    Parallel = "Parallel"
+
+
 class Cloud(Enum):
     AWS = 'AWS'
     GCP = 'GCP'
@@ -52,5 +57,7 @@ class TableName(Enum):
 class SwitchboardComponent(Enum):
     InvocationQueue = 'InvocationQueue'
     ExecutorQueue = 'ExecutorQueue'
+
+
 
 
