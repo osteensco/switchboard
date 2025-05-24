@@ -1,11 +1,8 @@
-import json
-from switchboard.db import DBInterface
-from switchboard.enums import Cloud, SwitchboardComponent
-from switchboard.invocation import Invoke
-from switchboard.schemas import Task
-from switchboard.cloud import (
-        UnsupportedCloud
-)
+from .db import DBInterface
+from .enums import Cloud, SwitchboardComponent
+from .invocation import Invoke
+from .schemas import Task
+
 
 
 

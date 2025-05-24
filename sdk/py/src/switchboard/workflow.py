@@ -1,10 +1,10 @@
 import json
 from typing import Self
-from switchboard.db import DB, DBInterface
-from switchboard.executor import push_to_executor
+
+from .db import DB, DBInterface
+from .executor import push_to_executor
 from .schemas import State, Step, ParallelStep, Context 
 from .enums import Cloud, Status, StepType
-from switchboard import enums
 
 
 

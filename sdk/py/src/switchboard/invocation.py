@@ -1,12 +1,11 @@
 from typing import Callable
 
-from switchboard.db import DBInterface
+from .db import DBInterface
 from .cloud import (
     AWS_message_push,
     GCP_message_push, 
-    AZURE_message_push, 
-    UnsupportedCloud
-        )
+    AZURE_message_push
+)
 from .enums import Cloud, SwitchboardComponent
 
 
@@ -23,9 +22,7 @@ def Invoke(cloud: Cloud, endpoint: str, body: str, custom_queue_push: Callable |
         case Cloud.CUSTOM:
             assert custom_queue_push is not None
             return custom_queue_push(body)
-        case _:
-            raise UnsupportedCloud(f"Cannot push message to invocation queue of unsupported cloud: {cloud}")
-    return {}
+
 
 
 def discover_invocation_endpoint(db: DBInterface, name: str) -> str:

@@ -1,4 +1,7 @@
 from botocore.utils import ClientError
+from abc import ABC, abstractmethod
+from boto3.dynamodb.conditions import Key
+
 from .schemas import NewState, State
 from .enums import SwitchboardComponent, TableName, Cloud
 from .cloud import (
@@ -7,8 +10,6 @@ from .cloud import (
         AZURE_db_connect, 
         UnsupportedCloud
         )
-from abc import ABC, abstractmethod
-from boto3.dynamodb.conditions import Key
 
 
 

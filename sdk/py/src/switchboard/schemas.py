@@ -1,6 +1,12 @@
 from dataclasses import dataclass
 from typing import Callable
-from switchboard.enums import Cloud, CloudResource, CloudResourceType, SwitchboardComponent
+
+from .enums import (
+    Cloud, 
+    CloudResource, 
+    CloudResourceType, 
+    SwitchboardComponent
+)
 
 
 

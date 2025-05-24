@@ -1,14 +1,12 @@
+import json
 from dataclasses import dataclass
 from typing import Callable
+
+from .db import DBInterface
 from .enums import Cloud
 from .invocation import Invoke, discover_invocation_endpoint
-import json
 
 
-# TODO
-#   The response will be used to push a message to the invocation queue
-#   This means it needs to be able to discover the required information to publish such a message
-#       Only the URL would be needed as IAM roles should take care of permissions, which means it can be discoverable in the database
 
 @dataclass
 class ResponseBody():
@@ -21,11 +19,12 @@ class ResponseBody():
 
 class Response():
     '''
-    Response interface for updating the switchboard of execution, completion, and success status of a worker.
+    Response interface for updating the switchboard of the status of a separate component.
     '''
     def __init__(
             self, 
-            cloud: Cloud, 
+            cloud: Cloud,
+            db: DBInterface,
             name: str, 
             ids: list[int], 
             status: list[bool]=[True,True,True], 
@@ -38,7 +37,7 @@ class Response():
         self._ids = ids
         self._status = status
         self._custom = custom_queue_push
-        self._endpoint = discover_invocation_endpoint(cloud, name)
+        self._endpoint = discover_invocation_endpoint(db, name)
    
     def _create_default_body(self) -> dict:
         return {
