@@ -1,19 +1,15 @@
 from dataclasses import dataclass
-
+from typing import Callable
 from switchboard.enums import Cloud, CloudResource, CloudResourceType, SwitchboardComponent
 
 
 
 
-
+# task object for tasks.py
 @dataclass
-class Registry:
-    # TODO 
-    #   hammer out details of the schema
-    #   probably need a class for what will ultimately be the 'fn' argument in the Workflow methods
-    #       what information would be needed to run each type of execution?
-    #       should a trigger map to specific executions?
-    contacts: dict
+class Task:
+    name: str
+    execute: Callable
 
 
 @dataclass

@@ -2,7 +2,7 @@ import json
 from typing import Self
 from switchboard.db import DB, DBInterface
 from switchboard.executor import push_to_executor
-from .schemas import State, Step, ParallelStep, Registry, Context 
+from .schemas import State, Step, ParallelStep, Context 
 from .enums import Cloud, Status, StepType
 from switchboard import enums
 
@@ -338,6 +338,12 @@ def ParallelCall(*functions, pubsub=False):
 def GetCache():
     assert WORKFLOW is not None
     return WORKFLOW.state.cache
+
+
+@wf_interface
+def Done():
+    assert WORKFLOW is not None
+    return WORKFLOW.done()
 
 
 

@@ -2,6 +2,7 @@ import json
 from switchboard.db import DBInterface
 from switchboard.enums import Cloud, SwitchboardComponent
 from switchboard.invocation import Invoke
+from switchboard.schemas import Task
 from switchboard.cloud import (
         UnsupportedCloud
 )
