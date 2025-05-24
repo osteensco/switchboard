@@ -266,10 +266,12 @@ class Workflow:
             # we don't need to update the db until after a successful execution
             for fn in functions:
                 
+
                 # TODO
                 #   figure out `fn` schema
                 #   add context field and populate with current context
                 #   add pubsub field based on pubsub argument of this function
+
 
                 self._enqueue_execution(self.cloud, self.db, self.name, fn)
         

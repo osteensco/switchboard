@@ -31,15 +31,17 @@ def push_to_executor(cloud: Cloud, db: DBInterface, name: str, body: str) -> dic
 
 # The switchboard executor function will be wrapped in a simple serverless function call as demonstrated below.
 #
+#   from tasks import directory_map #tasks.py in lambda directory
+#
 #   def lambda_handler(event, context):
 #       try:
-#           status = switchboard_execute(context)
+#           status = switchboard_execute(context, directory_map)
 #       except Exception as e:
 #           status = 400
 #       finally:
 #           return status
 
-def switchboard_execute(context):
+def switchboard_execute(context, directory_map):
 # Potential task categories that the executor should handle
 #   [ ] http endpoint
 #   [ ] compute (via sdk)
@@ -47,12 +49,22 @@ def switchboard_execute(context):
 #   [ ] message queue
 #   [ ] storage/DB operation (via sdk)
 #   [ ] ML/Data Pipeline (via sdk)
-# For initial support, focus on http and message cloud native message queues
+#   [ ] Event emitter/bus
+# For initial support, focus on http, message cloud native message queues, and event emission
 
 
+# Alt approach
+#   executor looks for tasks.py
+#   task.py should contain Task (Operator in airflow) objects with an execute parameter
+#   dictionary called 'directory_map'
+#       this is just dictionary of tasks
+#   context provides key to use for function call
+#   this allows for user to execute literally anything they want
 
-
-    pass
+# TODO
+#   work backwords in the flow to ensure the 'execute' key is part of the context for each step
+    task = directory_map[context['execute']]
+    return task.execute() # all functions passed into tasks inside of the directory_map should return a valid status code
 
 
 
