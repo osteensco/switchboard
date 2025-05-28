@@ -6,13 +6,6 @@ from .schemas import Task
 
 
 
-# TODO 
-#   Determine how to handle pubsub pattern
-#   ParallelStep does this already in a way, but consider the use case below 
-#       https://docs.aws.amazon.com/prescriptive-guidance/latest/modernization-integrating-microservices/pub-sub.html
-#       Replacing these implementations with switchboard would require additional SQS or SNS queue(s) from the executor -> microservice
-#           This migration requirement is in conflict with the goals of this framework
-#           Should switchboard provide batteries included queues + compute scaffolding to alleviate this sort of thing? Is it even a real problem?
 
 
 
@@ -48,19 +41,26 @@ def switchboard_execute(context, directory_map):
 #   [ ] storage/DB operation (via sdk)
 #   [ ] ML/Data Pipeline (via sdk)
 #   [ ] Event emitter/bus
-# For initial support, focus on http, message cloud native message queues, and event emission
 
 
-# Alt approach
+
+# generic support
+#   switchboard provides out of the box support for any job or worker a user wants switchboard to orchestrate
+#   the trigger of the user's business logic will need to be defined by the user
+#   while slightly cumbersome, this provides control and flexibility for the user
+#   
+# process:
 #   executor looks for tasks.py
-#   task.py should contain Task (Operator in airflow) objects with an execute parameter
+#   tasks.py should contain Task (Operator in airflow) objects with an execute parameter
 #   dictionary called 'directory_map'
 #       this is just dictionary of tasks
 #   context provides key to use for function call
 #   this allows for user to execute literally anything they want
 
-# TODO
-#   work backwords in the flow to ensure the 'execute' key is part of the context for each step
+# pubsub pattern support:
+#       https://docs.aws.amazon.com/prescriptive-guidance/latest/modernization-integrating-microservices/pub-sub.html
+#       user defines a task that publishes a message to the pubsub queue and each worker would need to have a Response() object created as part of their code
+
     task = directory_map[context['execute']]
     return task.execute() # all functions passed into tasks inside of the directory_map should return a valid status code
 

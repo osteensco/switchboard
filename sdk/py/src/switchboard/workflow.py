@@ -10,8 +10,7 @@ from .enums import Cloud, Status, StepType
 
 
 #TODO
-#   fn and *functions argument need a dataclass and/or custom typing
-#       this schema needs to be ironed out
+#   task and *tasks argument needs to be a key that matches a key in tasks.py as part of the executor function
 #   add logging and log sink
 
 
@@ -168,7 +167,7 @@ class Workflow:
         return state
 
 
-    def _add_step(self, name: StepType, *fn):
+    def _add_step(self, name: StepType, *tasks):
         '''
         Add the next step to the state. Adding an additional step to the workflow state brings the assumption that it was attempted to be executed.
         The workflow state will not recognize that it's been executed until receiving a success response from the executor function.
@@ -177,12 +176,13 @@ class Workflow:
             step_id = self._generate_step_id()
             task_id = 0
             tasks = []
-            for f in fn:
-                tasks.append(Step(step_id,f,task_id=task_id))
+            for t in tasks:
+                tasks.append(Step(step_id,t,task_id=task_id))
                 task_id += 1
             self.state.steps.append(ParallelStep(step_id, tasks))
         else:
-            self.state.steps.append(Step(self._generate_step_id(), fn[0]))
+            task = tasks[0]
+            self.state.steps.append(Step(self._generate_step_id(), task))
 
         self.step_idx += 1
         self.curr_step = self.state.steps[self.step_idx]
@@ -217,9 +217,9 @@ class Workflow:
         return True 
 
 
-    def _determine_step_execution(self, name: StepType, *fn: str) -> bool:
+    def _determine_step_execution(self, name: StepType, *tasks: str) -> bool:
         if not self._is_waiting():
-            self._add_step(name, *fn)
+            self._add_step(name, *tasks)
             return True
         if self._needs_retry():
             return True
@@ -227,11 +227,11 @@ class Workflow:
 
     
     @staticmethod
-    def _enqueue_execution(cloud: Cloud, db: DBInterface, name: str, msg_body: str):
+    def _enqueue_execution(cloud: Cloud, db: DBInterface, name: str, task: str):
+        msg_body = json.dumps({"execute": task})
         resp = push_to_executor(cloud, db, name, msg_body)
         # TODO
         #   log response
-
 
 
     def _next(self) -> Self:
@@ -239,8 +239,8 @@ class Workflow:
         return self
 
 
-    def call(self, fn) -> Self | WaitStatus:
-        if self._determine_step_execution(StepType.Call, fn):
+    def call(self, task) -> Self | WaitStatus:
+        if self._determine_step_execution(StepType.Call, task):
             # walk through orchestration steps until we are at current call
             if self.step_cnt != self.step_idx:
                 return self._next()
@@ -249,31 +249,24 @@ class Workflow:
             # TODO
             #   fix msg body
             #   should contain appropriate context
-            self._enqueue_execution(self.cloud, self.db, self.name, fn)
+            self._enqueue_execution(self.cloud, self.db, self.name, task)
         
         # when we determine the step doesn't need to be executed then the db just needs to be updated
         self._update_db(self.db)
         return WaitStatus(self.status, self.state)
 
 
-    def parallel_call(self, *functions, pubsub: bool=False) -> Self | WaitStatus:
-        if self._determine_step_execution(StepType.Parallel, *functions):
+    def parallel_call(self, *tasks) -> Self | WaitStatus:
+        if self._determine_step_execution(StepType.Parallel, *tasks):
             assert isinstance(self.curr_step, ParallelStep)
             # walk through orchestration steps until we are at current call
             if self.step_cnt != self.step_idx:
                 return self._next()
             
             # we don't need to update the db until after a successful execution
-            for fn in functions:
-                
+            for task in tasks:
 
-                # TODO
-                #   figure out `fn` schema
-                #   add context field and populate with current context
-                #   add pubsub field based on pubsub argument of this function
-
-
-                self._enqueue_execution(self.cloud, self.db, self.name, fn)
+                self._enqueue_execution(self.cloud, self.db, self.name, task)
         
         # when we determine the step doesn't need to be executed then the db just needs to be updated
         self._update_db(self.db)
@@ -321,17 +314,17 @@ def InitWorkflow(cloud: Cloud, name: str, db: DB, context: str):
 
 
 @wf_interface
-def Call(fn):
+def Call(task):
     global WORKFLOW
     assert WORKFLOW is not None
-    WORKFLOW = WORKFLOW.call(fn)
+    WORKFLOW = WORKFLOW.call(task)
 
 
 @wf_interface
-def ParallelCall(*functions, pubsub=False):
+def ParallelCall(*tasks):
     global WORKFLOW
     assert WORKFLOW is not None
-    WORKFLOW = WORKFLOW.parallel_call(*functions, pubsub)
+    WORKFLOW = WORKFLOW.parallel_call(*tasks)
 
 
 @wf_interface

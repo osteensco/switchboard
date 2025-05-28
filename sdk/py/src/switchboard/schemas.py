@@ -21,7 +21,7 @@ class Task:
 @dataclass
 class Step:
     step_id: int
-    resource_info: str
+    task_key: str # key that will be used to lookup function in directory_map in executor function's tasks.py
     executed: bool = False
     completed: bool = False
     success: bool = False

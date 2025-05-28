@@ -19,7 +19,8 @@ class ResponseBody():
 
 class Response():
     '''
-    Response interface for updating the switchboard of the status of a separate component.
+    Response interface for updating the switchboard of the status of a separate component. 
+    This could be a task worker or another internal switchboard component.
     '''
     def __init__(
             self, 
@@ -62,7 +63,6 @@ class Response():
         response = Invoke(self._cloud, self._endpoint, body, self._custom)
 
         return response
-
 
 
 
