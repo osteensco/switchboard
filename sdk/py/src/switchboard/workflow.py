@@ -10,7 +10,6 @@ from .enums import Cloud, Status, StepType
 
 
 #TODO
-#   task and *tasks argument needs to be a key that matches a key in tasks.py as part of the executor function
 #   add logging and log sink
 
 
@@ -69,11 +68,10 @@ class Workflow:
     @staticmethod
     def _get_context(context: str) -> Context:
         '''
-        Get the context from the request, ensure all required d
+        Get the context from the request, ensuring all required fields are present.
         '''
 
-        raw = json.loads(context) 
-
+        raw_context = json.loads(context) 
 
             # TODO
             #   Trigger message schema should have a unique way of identifying itself as the start of a new workflow
@@ -82,7 +80,7 @@ class Workflow:
             #       - i.e. we have a context of executed=True for a step and then receive a context of executed=False for the same step
         try:
             # required fields
-            cntx = Context(raw["ids"], raw["executed"], raw["completed"], raw["success"], {})
+            cntx = Context(raw_context["ids"], raw_context["executed"], raw_context["completed"], raw_context["success"], {})
             # context ids should at minimum have the run_id (0 idx) and step_id (1 idx)
             assert 2 <= len(cntx.ids) <= 3
         except: 
@@ -90,9 +88,10 @@ class Workflow:
             cntx = Context([0,0,-1], True, True, True, {})
         
         # optional fields
-        if "cache" in raw:
-            for k,v in raw["cache"].items():
+        if "cache" in raw_context:
+            for k,v in raw_context["cache"].items():
                 cntx.cache[k] = v
+
         # handle context without task id
         # task id is only required for a task as part of a ParallelStep
         # TODO
@@ -246,9 +245,6 @@ class Workflow:
                 return self._next()
             
             # we don't need to update the db until after a successful execution
-            # TODO
-            #   fix msg body
-            #   should contain appropriate context
             self._enqueue_execution(self.cloud, self.db, self.name, task)
         
         # when we determine the step doesn't need to be executed then the db just needs to be updated
@@ -314,27 +310,41 @@ def InitWorkflow(cloud: Cloud, name: str, db: DB, context: str):
 
 
 @wf_interface
-def Call(task):
+def Call(task: str) -> None:
+    '''
+    Call a task in a workflow.
+    A task string must match a key in the directory_map located in tasks.py as part of the executor function.
+    '''
     global WORKFLOW
     assert WORKFLOW is not None
     WORKFLOW = WORKFLOW.call(task)
 
 
 @wf_interface
-def ParallelCall(*tasks):
+def ParallelCall(*tasks: str) -> None:
+    '''
+    Call a group of tasks that should run in parallel.
+    The *tasks argument are strings that must match corresponding keys in the directory_map located in tasks.py as part of the executor function.
+    '''
     global WORKFLOW
     assert WORKFLOW is not None
     WORKFLOW = WORKFLOW.parallel_call(*tasks)
 
 
 @wf_interface
-def GetCache():
+def GetCache() -> dict:
+    '''
+    Retrieve the switchboard cache. The switchboard cache is a simple dictionary used to pass information between tasks and your workflow orchestration.
+    '''
     assert WORKFLOW is not None
     return WORKFLOW.state.cache
 
 
 @wf_interface
-def Done():
+def Done() -> int:
+    '''
+    Calling Done() signifies the end of a switchboard workflow. This function will return the status code of the workflows execution.
+    '''
     assert WORKFLOW is not None
     return WORKFLOW.done()
 

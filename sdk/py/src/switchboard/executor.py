@@ -60,9 +60,12 @@ def switchboard_execute(context, directory_map):
 # pubsub pattern support:
 #       https://docs.aws.amazon.com/prescriptive-guidance/latest/modernization-integrating-microservices/pub-sub.html
 #       user defines a task that publishes a message to the pubsub queue and each worker would need to have a Response() object created as part of their code
-
-    task = directory_map[context['execute']]
-    return task.execute() # all functions passed into tasks inside of the directory_map should return a valid status code
+    
+    if (task_key := context['execute']) in directory_map:
+        task = directory_map[task_key]
+        return task.execute() # all functions passed into tasks inside of the directory_map should return a valid status code
+    else:
+        return 404
 
 
 
