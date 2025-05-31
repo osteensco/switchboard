@@ -26,6 +26,7 @@ class Step:
     completed: bool = False
     success: bool = False
     task_id: int = -1
+    retries: int = 0
 
 
 @dataclass
@@ -59,6 +60,13 @@ def NewState(dict) -> State:
 #         }
 @dataclass
 class Context:
+    '''
+    ids - [
+        100, # run id
+        1 # step id
+        -1 # task id
+    ]
+    '''
     ids: list[int]
     executed: bool
     completed: bool

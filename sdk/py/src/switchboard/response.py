@@ -16,6 +16,9 @@ class ResponseBody():
     success: bool
     cache: dict 
 
+def to_dict(self):
+    return self.__dict__
+
 
 class Response():
     '''
@@ -64,6 +67,13 @@ class Response():
 
         return response
 
+
+
+class Trigger(Response):
+    def __init__(self, cloud: Cloud, db: DBInterface, name: str, custom_queue_push: Callable | None = None) -> None:
+        ids = [-1,-1,-1] 
+        status = [True, True, True] 
+        super().__init__(cloud, db, name, ids, status, custom_queue_push)
 
 
 

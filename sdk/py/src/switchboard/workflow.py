@@ -73,11 +73,6 @@ class Workflow:
 
         raw_context = json.loads(context) 
 
-            # TODO
-            #   Trigger message schema should have a unique way of identifying itself as the start of a new workflow
-            #   We should instead assert required fields without just assuming missing one or more means it's a new workflow
-            #   We should also ignore invocations from an impossible context in init_state to ensure idempotence
-            #       - i.e. we have a context of executed=True for a step and then receive a context of executed=False for the same step
         try:
             # required fields
             cntx = Context(raw_context["ids"], raw_context["executed"], raw_context["completed"], raw_context["success"], {})
@@ -119,15 +114,31 @@ class Workflow:
         
         # if we already have an initialized state it should never be emtpy
         assert state.steps
+
         
+        # keys can and should be overwritten in the cache
+        # TODO 
+        #   log when a key is overwritten in the cache
         for k,v in self.context.cache:
             state.cache[k] = v
         
         self.step_idx = len(state.steps)-1
         self.curr_step = state.steps[self.step_idx]
         
+        # step id should always match our step id from the context
+        assert self.curr_step.step_id == self.context.ids[1], f"step id mismatch, curr_step={self.curr_step.step_id} context={self.context.ids[1]}"
+
+        #   We ignore invocations from an impossible context to ensure idempotence
+        if self.curr_step.executed and not self.context.executed:
+            return state
+        if self.curr_step.completed and not self.context.completed:
+            return state
+        if self.curr_step.success and not self.context.success:
+            return state
+
+
         # handle context from a task in a ParallelStep vs Step
-        if self.context.ids[2] >= 0:
+        if self.context.ids[2] >= 0: # id at index 2 is the task id, which is -1 unless the step is part of a ParallelStep
             assert isinstance(self.curr_step, ParallelStep)
             executed = True
             completed = True
@@ -149,7 +160,8 @@ class Workflow:
                 executed = False if not task.executed else executed
                 completed = False if not task.completed else completed
                 success = False if not task.success else success
-
+            
+            # the context referenced by the workflow will need to represent the ParallelStep as a whole
             self.curr_step.executed, self.context.executed = executed, executed
             self.curr_step.completed, self.context.completed = completed, completed
             self.curr_step.success, self.context.success = success, success
@@ -199,15 +211,27 @@ class Workflow:
         return self.context.ids[1]+1
 
 
-    def _needs_retry(self) -> bool:
-        # TODO
-        #   check number of retries allowed and executed
-        #   update the db if a retry is required so the state reflects number of retries sent
+    def _needs_retry(self, step_type: StepType, step: Step | ParallelStep | None) -> bool:
+        assert step
+        retries = 0
         if self.context.executed and self.context.completed and not self.context.success:
-            return True
-        # if out of retries:
-        #     self.status = Status.OutOfRetries
-        return False
+            match step_type:
+                case StepType.Call:
+                    assert isinstance(step, Step)
+                    retries = step.retries
+                    step.retries -= 1 # this will update the appropriate step in self.state
+                case StepType.Parallel:
+                    assert isinstance(step, ParallelStep)
+                    found = False
+                    for s in step.tasks:
+                        if s.task_id == self.context.ids[2]:
+                            found = True
+                            retries = s.retries
+                            s.retries -= 1 # this will update the appropriate step in self.state
+                    assert found, "no task id matches the task id in the context - \ntasks={step.tasks}\ncontext={self.context}"
+        if retries <= 0:
+            return False
+        return True
 
 
     def _is_waiting(self) -> bool:
@@ -220,7 +244,7 @@ class Workflow:
         if not self._is_waiting():
             self._add_step(name, *tasks)
             return True
-        if self._needs_retry():
+        if self._needs_retry(name, self.curr_step):
             return True
         return False
 
