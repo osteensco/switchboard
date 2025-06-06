@@ -143,7 +143,7 @@ def test_needs_retry():
     context = Context([100,1], True, True, False,{})
     wf.context = context
     expected = True
-    actual = wf._needs_retry()
+    actual = wf._needs_retry(StepType.Call, Step(1,'testkey',True,True,False, retries=1))
     assert actual == expected
 
 def test_is_waiting():

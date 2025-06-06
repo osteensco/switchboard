@@ -73,13 +73,17 @@ class Workflow:
 
         raw_context = json.loads(context) 
 
-        try:
-            # required fields
-            cntx = Context(raw_context["ids"], raw_context["executed"], raw_context["completed"], raw_context["success"], {})
-            # context ids should at minimum have the run_id (0 idx) and step_id (1 idx)
-            assert 2 <= len(cntx.ids) <= 3
-        except: 
-            # newly triggered workflows wont have these fields
+        # required fields
+        assert "ids" in raw_context.keys(), "required field 'ids' not present in context."
+        assert "executed" in raw_context.keys(), "required field 'executed' not present in context."
+        assert "completed" in raw_context.keys(), "required field 'completed' not present in context."
+        assert "success" in raw_context.keys(), "required field 'success' not present in context."
+
+        cntx = Context(raw_context["ids"], raw_context["executed"], raw_context["completed"], raw_context["success"], {})
+        assert len(cntx.ids) == 3, "context ids should have the run_id (0 idx), step_id (1 idx), and the task_id (2 idx)"
+
+        # a newly triggered workflow will always have these ids exactly
+        if cntx.ids == [-1,-1,-1]: 
             cntx = Context([0,0,-1], True, True, True, {})
         
         # optional fields
@@ -89,8 +93,7 @@ class Workflow:
 
         # handle context without task id
         # task id is only required for a task as part of a ParallelStep
-        # TODO
-        #   find better way to assert task id at this point in the workflow execution for requests that would require a task id 
+
         if len(cntx.ids) == 2:
             cntx.ids.append(-1)
 
