@@ -11,6 +11,7 @@ from .enums import Cloud, Status, StepType
 
 #TODO
 #   add logging and log sink
+#   expand and improve tests (really need some end to end simulations)
 
 
 
