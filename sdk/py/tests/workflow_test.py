@@ -188,6 +188,7 @@ def test_next():
 #     actual = wf.call("http")
 #     assert actual.status == Status.InProcess
 
+
 def test_parallel_call():
     pass
 

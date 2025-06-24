@@ -89,12 +89,13 @@ class Workflow:
         
         # optional fields
         if "cache" in raw_context:
+            assert isinstance(raw_context["cache"], dict), "The 'cache' field should be a dictionary like object."
             for k,v in raw_context["cache"].items():
                 cntx.cache[k] = v
 
         # handle context without task id
         # task id is only required for a task as part of a ParallelStep
-
+        # -1 is the default value for task id to help identify that it is not actually in use
         if len(cntx.ids) == 2:
             cntx.ids.append(-1)
 
