@@ -35,7 +35,7 @@ class Response():
             custom_queue_push: Callable | None = None,
     ) -> None:
 
-        assert len(ids)==3, "ids should be a list of length three representing [run_id, step_id, task_id]"
+        assert len(ids)==3, "ids should be a list of length three representing [run_id, step_id, task_id], if there is no task_id use '-1'"
         assert len(status)==3, "status should be a list of length three representing [executed, completed, success]"
         self._cloud = cloud
         self._ids = ids

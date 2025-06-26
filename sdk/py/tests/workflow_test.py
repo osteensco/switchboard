@@ -177,6 +177,7 @@ def test_next():
 
 
 # this test brought to you by gemini T.T
+# TODO fix this, too many mocks, make sure its actually testing something
 def test_call():
     wf = Workflow.__new__(Workflow, Cloud.CUSTOM, 'test',DB(Cloud.CUSTOM, DBMockInterface(None)),'{}')
     wf.db = DB(Cloud.CUSTOM, DBMockInterface(None)).interface
@@ -212,7 +213,7 @@ def test_call():
         assert isinstance(result, WaitStatus)
 
 
-
+# TODO implement this test
 def test_parallel_call():
     pass
 
