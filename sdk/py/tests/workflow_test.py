@@ -1,7 +1,8 @@
 import pytest
+from unittest.mock import patch
 from switchboard.enums import Status, Cloud, StepType, SwitchboardComponent, TableName
 from switchboard.schemas import State, Context, Step, ParallelStep
-from switchboard.workflow import Workflow, InitWorkflow, Call, ParallelCall
+from switchboard.workflow import WaitStatus, Workflow, InitWorkflow, Call, ParallelCall
 from switchboard.db import DBInterface, DB
 
 
@@ -60,12 +61,16 @@ def reset_workflow_singleton():
         "name,state,context,expected_state,expected_context",
         [
             (
-                "1. Start a brand new workflow.", None, '{}', State('test',1,[],{}), Context([1,0,-1], True, True, True,{})
+                "1. Start a brand new workflow.", 
+                None, 
+                '{"ids": [-1,-1,-1], "executed": true, "completed": true, "success": true}', 
+                State('test',1,[],{}), 
+                Context([1,0,-1], True, True, True,{})
             ),
             (
                 "2. Workflow after executing a worker.", 
                 State('test',100,[Step(1,"http",True,False,False)],{}), 
-                '{"ids": [100,1], "executed": true, "completed": false, "success": false }',
+                '{"ids": [100,1,-1], "executed": true, "completed": false, "success": false }',
                 State('test',100,[Step(1,"http",True,False,False)],{}),
                 Context([100,1,-1], True, False, False,{})
             )
@@ -83,13 +88,13 @@ def test_new_Workflow(name, state, context, expected_state, expected_context):
         "name,context,expected",
         [
             (
-                "1. Empty context.",
-                '{}',
+                "1. New Context.",
+                '{"ids": [-1,-1,-1], "executed": true, "completed": true, "success": true}',
                 Context([0,0,-1], True, True, True,{})
             ),
             (
                 "2. Non empty context.",
-                '{"ids": [100,1], "executed": true, "completed": true, "success": true}',
+                '{"ids": [100,1,-1], "executed": true, "completed": true, "success": true}',
                 Context([100,1,-1], True, True, True,{})
             ),
             (
@@ -171,22 +176,41 @@ def test_next():
     assert actual.step_cnt == 1
 
 
-# TODO 
-#   fix test
-#       need to identify what test for this method really needs to accomplish
+# this test brought to you by gemini T.T
+def test_call():
+    wf = Workflow.__new__(Workflow, Cloud.CUSTOM, 'test',DB(Cloud.CUSTOM, DBMockInterface(None)),'{}')
+    wf.db = DB(Cloud.CUSTOM, DBMockInterface(None)).interface
+    wf.cloud = Cloud.CUSTOM
+    wf.name = 'test'
+    wf.status = Status.InProcess
+    wf.step_cnt = 0
+    wf.step_idx = 0
+    wf.state = State('test',100,[],{})
+    wf.context = Context([100,1,-1], True, True, True,{})
 
-# def test_call():
-#     wf = Workflow.__new__(Workflow, Cloud.CUSTOM, 'test',DB(Cloud.CUSTOM, DBMockInterface(None)),'')
-#     wf.db = DB(Cloud.CUSTOM, DBMockInterface(None)).interface
-#     wf.cloud = Cloud.CUSTOM
-#     wf.name = 'test'
-#     wf.status = Status.InProcess
-#     wf.step_cnt = 0
-#     wf.step_idx = -1
-#     wf.state = State('test',100,[],{})
-#     wf.context = Context([100,1,-1], True, True, True,{})
-#     actual = wf.call("http")
-#     assert actual.status == Status.InProcess
+    with patch.object(wf, '_determine_step_execution', return_value=True) as mock_determine, \
+         patch.object(wf, '_enqueue_execution') as mock_enqueue, \
+         patch.object(wf, '_update_db') as mock_update:
+
+        result = wf.call("http")
+
+        mock_determine.assert_called_once_with(StepType.Call, "http")
+        mock_enqueue.assert_called_once_with(Cloud.CUSTOM, wf.db, "test", "http")
+        mock_update.assert_called_once()
+        assert isinstance(result, WaitStatus)
+
+
+    with patch.object(wf, '_determine_step_execution', return_value=False) as mock_determine, \
+         patch.object(wf, '_enqueue_execution') as mock_enqueue, \
+         patch.object(wf, '_update_db') as mock_update:
+
+        result = wf.call("http")
+
+        mock_determine.assert_called_once_with(StepType.Call, "http")
+        mock_enqueue.assert_not_called()
+        mock_update.assert_called_once()
+        assert isinstance(result, WaitStatus)
+
 
 
 def test_parallel_call():
