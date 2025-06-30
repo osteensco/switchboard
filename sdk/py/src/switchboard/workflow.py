@@ -48,7 +48,7 @@ class Workflow:
         
         self.cloud = cloud
         self.name = name
-        self.step_idx = 0
+        self.step_idx = -1
         self.step_cnt = 0
         self.curr_step = None
         self.status = Status.InProcess
@@ -188,18 +188,22 @@ class Workflow:
         Add the next step to the state. Adding an additional step to the workflow state brings the assumption that it was attempted to be executed.
         The workflow state will not recognize that it's been executed until receiving a success response from the executor function.
         '''
+
+        assert self.step_idx == len(self.state.steps)-1, f"The step_idx is incorrect, step_id: {self.step_idx}, state.steps: {self.state.steps}"
         if name == StepType.Parallel:
             step_id = self._generate_step_id()
             task_id = 0
-            tasks = []
+            parallel_tasks = []
             for t in tasks:
-                tasks.append(Step(step_id,t,task_id=task_id))
+                parallel_tasks.append(Step(step_id,t,task_id=task_id))
                 task_id += 1
-            self.state.steps.append(ParallelStep(step_id, tasks))
+            self.state.steps.append(ParallelStep(step_id, parallel_tasks))
         else:
             task = tasks[0]
             self.state.steps.append(Step(self._generate_step_id(), task))
-
+        
+        assert self.step_idx+1 == len(self.state.steps)-1, f"The state does not have the right amount of steps. Expected len {self.step_idx+1}, state.steps is {self.state.steps}"
+        
         self.step_idx += 1
         self.curr_step = self.state.steps[self.step_idx]
 
@@ -316,7 +320,7 @@ def wf_interface(func):
     def nullcheck(*args, **kargs):
         global WORKFLOW
         if WORKFLOW:
-            func(*args, **kargs)
+            return func(*args, **kargs)
         else:
             raise RuntimeError("Attempted to interact with the WORKFLOW without it being active. Make sure you call the InitWorkflow() function before calling this function.")
     return nullcheck
@@ -337,6 +341,10 @@ def InitWorkflow(cloud: Cloud, name: str, db: DB, context: str):
     global WORKFLOW
     WORKFLOW = Workflow(cloud, name, db, context)
 
+def ClearWorkflow():
+    global WORKFLOW
+    if WORKFLOW:
+        WORKFLOW = None
 
 @wf_interface
 def Call(task: str) -> None:

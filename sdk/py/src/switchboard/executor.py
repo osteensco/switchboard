@@ -32,7 +32,7 @@ def push_to_executor(cloud: Cloud, db: DBInterface, name: str, body: str) -> dic
 #       finally:
 #           return status
 
-def switchboard_execute(context, directory_map):
+def switchboard_execute(context: dict, directory_map: dict[str, Task]) -> int:
 # Potential task categories that the executor should handle
 #   [ ] http endpoint
 #   [ ] compute (via sdk)
@@ -50,12 +50,11 @@ def switchboard_execute(context, directory_map):
 #   while slightly cumbersome, this provides control and flexibility for the user
 #   
 # process:
-#   executor looks for tasks.py
-#   tasks.py should contain Task (Operator in airflow) objects with an execute parameter
-#   dictionary called 'directory_map'
-#       this is just dictionary of tasks
-#   context provides key to use for function call
-#   this allows for user to execute literally anything they want
+#   - executor looks for tasks.py
+#   - tasks.py should just contain a dictionary called 'directory_map' 
+#   - the 'directory_map' should contain key value pairs with each value being a Task object (a Task is like an Operator in airflow)
+#   - context provides key to use for function call (this is the 'execute' field)
+#   - this allows for users to trigger anything they'd like through any means they like
 
 # pubsub pattern support:
 #       https://docs.aws.amazon.com/prescriptive-guidance/latest/modernization-integrating-microservices/pub-sub.html
