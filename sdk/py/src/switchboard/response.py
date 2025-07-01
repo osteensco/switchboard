@@ -29,7 +29,7 @@ class Response():
             self, 
             cloud: Cloud,
             db: DBInterface,
-            name: str, 
+            name: str, # Workflow name
             ids: list[int], 
             status: list[bool]=[True,True,True], 
             custom_queue_push: Callable | None = None,
@@ -70,10 +70,12 @@ class Response():
 
 
 class Trigger(Response):
+    '''
+    The Trigger object is used to initiate a workflow. This inherits from the `Response` class, and will push a message to the invocation queue that indicates a new run should be started.
+    '''
     def __init__(self, cloud: Cloud, db: DBInterface, name: str, custom_queue_push: Callable | None = None) -> None:
         ids = [-1,-1,-1] 
-        status = [True, True, True] 
-        super().__init__(cloud, db, name, ids, status, custom_queue_push)
+        super().__init__(cloud, db, name, ids, custom_queue_push=custom_queue_push)
 
 
 
