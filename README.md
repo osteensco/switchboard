@@ -1,3 +1,18 @@
+<div align="center">
+    
+```
+◌  ◌  ● 
+◌  ●  ◌ 
+◌  ●  ◌ 
+●  ◌  ◌ 
+
+s w i t c h b o a r d
+
+```
+
+</div>
+
+
 # Switchboard
 
 **Event-driven, serverless orchestration-as-code.**
@@ -23,13 +38,13 @@ It's built to be cloud-agnostic and abstracts away the complexities of long-runn
 
 Switchboard's architecture is simple and robust, relying on standard cloud primitives.
 
-1.  **Orchestrator:** A serverless function that runs your workflow definition code.
+1.  **Workflow:** A serverless function that runs your workflow definition code.
 2.  **State Database:** A key-value store (like DynamoDB) that persists the state of every workflow run.
 3.  **Message Queues:** Used to reliably trigger task executors and receive their responses.
-4.  **Executor:** A serverless function that executes your individual tasks (your business logic).
+4.  **Executor:** A serverless function that executes or triggers execution of your individual tasks (your business logic).
 
 A typical workflow execution looks like this:
-`Trigger -> Orchestrator -> Invocation Queue -> State Update -> Executor -> Response Queue -> Orchestrator`
+`Trigger -> Invocation Queue -> Workflow -> Executor -> Response -> Invocation Queue`
 
 ## Getting Started (Python Example)
 
@@ -44,19 +59,25 @@ Create a `tasks.py` file that maps task names to functions. These are your units
 
 from switchboard.schemas import Task
 
-def process_data(some_input):
+def process_data():
     # Your business logic here
-    print(f"Processing {some_input}...")
+    print("Processing some data...")
     return 200
 
-def generate_report(results):
+def generate_report():
     # Your business logic here
-    print(f"Generating report for {results}...")
+    print("Generating report...")
+    return 200
+
+def another_task():
+    # Your business logic here
+    print("task complete!")
     return 200
 
 directory_map = {
-    "process_data_task": Task(name="process_data_task", execute=lambda: process_data("example_input")),
-    "generate_report_task": Task(name="generate_report_task", execute=lambda: generate_report("example_results")),
+    "process_data_task": Task(name="process_data_task", execute=process_data),
+    "generate_report_task": Task(name="generate_report_task", execute=generate_report),
+    "another_task": Task(name="another_task", execute=another_task),
 }
 ```
 
@@ -98,16 +119,16 @@ def workflow_handler(context):
 
 Switchboard is currently in active development. The Python SDK is the most mature part of the project.
 
-Our roadmap includes:
+Roadmap inclues:
 *   **CLI Tool:** For easy setup, management, and deployment of Switchboard resources.
 *   **Go & TypeScript SDKs:** Bringing multi-language support to more developers.
-*   **Advanced Workflow Patterns:** Adding support for conditional logic, cron triggers, sub-workflows, and more.
 *   **Enhanced Observability:** Integrating logging, monitoring, and tracing.
+*   **Advanced Configuration:** Get as far into the weeds as you see fit.
 *   **Comprehensive Documentation & Examples.**
 
 ## Contributing
 
-We welcome contributions! Please see our contributing guidelines to get started.
+Contributions are welcome!
 
 ## License
 
