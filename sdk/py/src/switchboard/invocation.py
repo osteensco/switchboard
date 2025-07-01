@@ -10,7 +10,7 @@ from .enums import Cloud, SwitchboardComponent
 
 
 
-# Interface for interacting with the switchboard invocation queue
+# Interface for interacting with the switchboard invocation and execution queues
 def Invoke(cloud: Cloud, endpoint: str, body: str, custom_queue_push: Callable | None = None) -> dict:
     match cloud:
         case Cloud.AWS:

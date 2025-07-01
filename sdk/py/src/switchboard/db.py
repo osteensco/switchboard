@@ -18,6 +18,8 @@ from .cloud import (
 class DBInterface(ABC):
     '''
     Abstract base class for implementing a switchboard database interface.
+    Note that the out-of-the-box database interfaces switchboard provides are all built off of this interface. 
+    This class is available in the API to allow users the capability to create custom database interfaces for data persistence solutions of their choosing.
 
     Parameters:
         conn: A specific database connection object. 

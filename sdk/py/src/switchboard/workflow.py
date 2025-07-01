@@ -14,8 +14,10 @@ from .enums import Cloud, Status, StepType
 #   expand and improve tests (really need some end to end simulations)
 
 
-
 class WaitStatus:
+    """
+    The WaitStatus class is a dummy object used to avoid execution of downstream tasks.
+    """
     def __init__(self, status: Status, state: State) -> None:
         self.status = status
         self.state = state
@@ -34,6 +36,16 @@ class WaitStatus:
 
 
 class Workflow:
+    """
+    The main engine for Switchboard orchestrations.
+
+    The Workflow class is a singleton that manages the state of a single workflow execution.
+    It is responsible for initializing the workflow's state from a database,
+    tracking the progress of steps, handling retries, and executing tasks.
+
+    It is not meant to be instantiated directly. Instead, the `InitWorkflow` function
+    should be used to create and initialize the singleton instance.
+    """
     _instance = None
     _initialized = False
 
@@ -43,6 +55,20 @@ class Workflow:
         return cls._instance
 
     def __init__(self, cloud: Cloud, name: str, db: DB, context: str) -> None:
+        """
+        Initializes the Workflow singleton.
+
+        This constructor is called by the `__new__` method only when an instance
+        of the Workflow does not yet exist. It sets up the initial state of the
+        workflow based on the provided context.
+
+        Args:
+            cloud: The cloud provider being used (e.g., Cloud.AWS).
+            name: The name of the workflow, used for identification in the database.
+            db: An initialized DB object for state persistence.
+            context: The JSON string context from the invocation event, which determines
+                     the current state of the workflow.
+        """
         if self._initialized:
             return
         
@@ -271,7 +297,23 @@ class Workflow:
         return self
 
 
-    def call(self, task) -> Self | WaitStatus:
+    def call(self, task: str) -> Self | WaitStatus:
+        """
+        Executes a single task as a step in the workflow.
+
+        This method determines if the task needs to be executed, retried, or skipped.
+        If execution is required, it enqueues the task for the executor.
+        If the workflow is waiting for a task to complete, it returns a WaitStatus
+        object to halt further execution of the orchestration logic.
+
+        Args:
+            task: The name of the task to execute. This must correspond to a key
+                  in the executor's directory_map.
+
+        Returns:
+            The Workflow instance to allow for method chaining, or a WaitStatus
+            object if the workflow should pause.
+        """
         if self._determine_step_execution(StepType.Call, task):
             # walk through orchestration steps until we are at current call
             if self.step_cnt != self.step_idx:
@@ -285,7 +327,22 @@ class Workflow:
         return WaitStatus(self.status, self.state)
 
 
-    def parallel_call(self, *tasks) -> Self | WaitStatus:
+    def parallel_call(self, *tasks: str) -> Self | WaitStatus:
+        """
+        Executes multiple tasks in parallel as a single step in the workflow.
+
+        This method determines if the group of tasks needs to be executed. If so,
+        it enqueues all tasks for the executor. The workflow will wait for all
+        tasks in the parallel step to complete before proceeding.
+
+        Args:
+            *tasks: A list of task names to execute in parallel. Each name must
+                    correspond to a key in the executor's directory_map.
+
+        Returns:
+            The Workflow instance to allow for method chaining, or a WaitStatus
+            object if the workflow should pause.
+        """
         if self._determine_step_execution(StepType.Parallel, *tasks):
             assert isinstance(self.curr_step, ParallelStep)
             # walk through orchestration steps until we are at current call
@@ -303,6 +360,15 @@ class Workflow:
 
 
     def done(self):
+        """
+        Marks the workflow as completed.
+
+        This should be the final call in a workflow definition. It finalizes the
+        workflow's status.
+
+        Returns:
+            An integer status code (e.g., 200) to indicate completion.
+        """
         if self.status is Status.InProcess:
             self.status = Status.Completed
         # TODO
@@ -313,10 +379,28 @@ class Workflow:
 
 
 
+
 WORKFLOW = None
 
-# workflow interface decorator
+
 def wf_interface(func):
+    """
+    Ensures that the Workflow singleton is initialized before calling a public interface function.
+
+    This decorator acts as a guard for all public functions that interact with the
+    global `WORKFLOW` instance. It checks if the singleton has been instantiated via
+    `InitWorkflow()` and raises a `RuntimeError` if it has not. This prevents
+    errors from trying to use the workflow engine before it's ready.
+
+    Args:
+        func: The function to be decorated.
+
+    Returns:
+        The decorated function, which will perform the check before execution.
+
+    Raises:
+        RuntimeError: If the `WORKFLOW` singleton is not initialized.
+    """
     def nullcheck(*args, **kargs):
         global WORKFLOW
         if WORKFLOW:
