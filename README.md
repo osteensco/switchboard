@@ -137,3 +137,8 @@ Contributions are welcome!
 ## License
 
 This project is licensed under the Apache 2.0 License.
+
+## Project diagrams and other notes
+![image](https://github.com/user-attachments/assets/632e95d7-03ca-4203-9b22-4ebca6614ff3) 
+![image](https://github.com/user-attachments/assets/d2c44162-eb2e-4ffa-9b77-9b7870246b80)
+
