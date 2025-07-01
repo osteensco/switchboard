@@ -88,7 +88,7 @@ In your main handler, define the orchestration logic using the Switchboard SDK.
 ```python
 # main.py (your orchestrator's handler)
 
-from switchboard import InitWorkflow, Call, ParallelCall, Done, DB, Cloud
+from switchboard import InitWorkflow, Call, ParallelCall, Done, DB, Cloud, GetCache
 
 def workflow_handler(context):
     # Initialize the database connection
@@ -102,14 +102,18 @@ def workflow_handler(context):
         context=context
     )
 
+    # Retrieve data passed between workflow steps or from executed tasks
+    data = GetCache()
+
     # Execute a single task and wait for it to complete
     Call("process_data_task")
 
-    # Execute multiple tasks in parallel
-    ParallelCall(
-        "generate_report_task",
-        "another_task"
-    )
+    # Conditionally execute multiple tasks in parallel
+    if data["some_bool_field"]:
+        ParallelCall(
+            "generate_report_task",
+            "another_task"
+        )
 
     # Mark the workflow as complete
     return Done()
