@@ -105,8 +105,9 @@ class Workflow:
         assert "executed" in raw_context.keys(), "required field 'executed' not present in context."
         assert "completed" in raw_context.keys(), "required field 'completed' not present in context."
         assert "success" in raw_context.keys(), "required field 'success' not present in context."
+        assert "cache" in raw_context.keys(), "required field 'cache' not present in context."
 
-        cntx = Context(raw_context["ids"], raw_context["executed"], raw_context["completed"], raw_context["success"], {})
+        cntx = Context(raw_context["ids"], raw_context["executed"], raw_context["completed"], raw_context["success"], raw_context["cache"])
         assert len(cntx.ids) == 3, "context ids should have the run_id (0 idx), step_id (1 idx), and the task_id (2 idx)"
 
         # a newly triggered workflow will always have these ids exactly
@@ -284,9 +285,10 @@ class Workflow:
         return False
 
     
-    @staticmethod
-    def _enqueue_execution(cloud: Cloud, db: DBInterface, name: str, task: str):
-        msg_body = json.dumps({"execute": task})
+    # @staticmethod
+    def _enqueue_execution(self, cloud: Cloud, db: DBInterface, name: str, task: str):
+        # the task needs to be added to the context at this point
+        msg_body = json.dumps({"execute": task} | self.context.to_dict())
         resp = push_to_executor(cloud, db, name, msg_body)
         # TODO
         #   log response

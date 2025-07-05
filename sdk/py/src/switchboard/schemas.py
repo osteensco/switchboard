@@ -71,8 +71,16 @@ class Context:
     executed: bool
     completed: bool
     success: bool
-    # cache is used to add variables to the State cache. this can be defined in the switchboard response object body.
-    cache: dict 
+    cache: dict # cache is used to add variables to the State cache which can be defined in the switchboard response object body.
+
+    def to_dict(self):
+        return {
+                "ids": self.ids,
+                "executed": self.executed,
+                "completed": self.completed,
+                "success": self.success,
+                "cache": self.cache,
+                }
 
 
 # dataclass for cloud endpoints.

@@ -1,7 +1,7 @@
 from .db import DBInterface
 from .enums import Cloud, SwitchboardComponent
 from .invocation import Invoke
-from .schemas import Task
+from .schemas import Context, Task
 
 
 
@@ -21,12 +21,16 @@ def push_to_executor(cloud: Cloud, db: DBInterface, name: str, body: str) -> dic
 
 
 # The switchboard executor function will be wrapped in a simple serverless function call as demonstrated below.
+# It is important to note that the executor function will vary based on the cloud provider used.
 #
-#   from tasks import directory_map #tasks.py in lambda directory
+#   import json
+#   from .tasks import directory_map #tasks.py in lambda directory
 #
 #   def lambda_handler(event, context):
+#       assert len(event['Records']) == 1, f"Event records array does not equal 1, ensure the executor's queue batch size is set to 1. event['Records']: {event['Records']}"
+#       sb_context = json.loads(event['Records'][0]['body'])
 #       try:
-#           status = switchboard_execute(context, directory_map)
+#           status = switchboard_execute(sb_context, directory_map)
 #       except Exception as e:
 #           status = 400
 #       finally:
@@ -62,7 +66,11 @@ def switchboard_execute(context: dict, directory_map: dict[str, Task]) -> int:
     
     if (task_key := context['execute']) in directory_map:
         task = directory_map[task_key]
-        return task.execute() # all functions passed into tasks inside of the directory_map should return a valid status code
+
+        # all functions passed into tasks inside of the directory_map should take 
+        # the raw context as an argument and return a valid status code
+
+        return task.execute(Context(context["ids"],context["executed"],context["completed"],context["success"],context["cache"]))
     else:
         return 404
 

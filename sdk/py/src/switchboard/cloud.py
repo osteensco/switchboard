@@ -27,14 +27,16 @@ def AZURE_db_connect():
 # Message queue publishers
 def AWS_message_push(endpoint: str, msg: str) -> dict:
     sqs = boto3.client("sqs")
+    response = {}
     try:
         response = sqs.send_message(
             QueueUrl=endpoint,
             MessageBody=msg
         )
-        return response
     except Exception as e:
         raise e
+    finally:
+        return response
 
 def GCP_message_push(msg: str) -> dict:
     return {}

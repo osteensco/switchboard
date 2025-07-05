@@ -4,41 +4,14 @@ import json
 from unittest.mock import MagicMock, patch
 
 from switchboard.enums import Cloud, Status
+from switchboard.response import Response
 from switchboard.workflow import ClearWorkflow, InitWorkflow, Call, Done
 from switchboard.db import DB, DBInterface
 from switchboard.schemas import State, Context
 from switchboard.executor import switchboard_execute
 from .tasks import directory_map
+from .db import DBMockInterface
 
-
-class DBMockInterface(DBInterface):
-    def __init__(self, state: State | None) -> None:
-        self.all_states, self.id_max = self._prepopulate(state)
-
-    def _prepopulate(self, state: State | None) -> tuple[dict, int]:
-        if state:
-            return {state.run_id: state}, state.run_id
-        return {}, 0
-
-    def read(self, name, id):
-        try:
-            state = self.all_states[id]
-            return state
-        except KeyError:
-            return None
-
-    def write(self, state):
-        self.all_states[state.run_id] = state
-
-    def get_endpoint(self, name, component):
-        return "mocked/endpoint"
-
-    def increment_id(self, name):
-        self.id_max += 1
-        return self.id_max
-
-    def get_table(self, table):
-        pass
 
 
 @pytest.mark.integration
@@ -77,4 +50,40 @@ def test_workflow_integration():
     Call("my_task")
 
     status = Done()
-    assert status == 200, "!!!!!"
+    assert status == 200
+
+
+
+@pytest.mark.integration
+def test_endtoend_integration():
+
+    context = '{"ids": [-1,-1,-1], "executed": true, "completed": true, "success": true}'
+
+    def workflow_serverless_function(context):
+        db = DB(Cloud.CUSTOM, DBMockInterface(None))
+        InitWorkflow(Cloud.CUSTOM, 'test_workflow', db, context)
+    
+        Call("my_task")
+
+        Call("my_other_task")
+
+        Call("final_task")
+
+        Done()
+
+        # ensure the workflow object is cleared to mimic a serverless function's end of life
+        ClearWorkflow()
+
+    def executor_serverless_function(context):
+        status = 500
+        try:
+            status = switchboard_execute(context, directory_map)
+        except BaseException as e: 
+            print(e)
+        finally:
+            return status
+
+
+
+
+
