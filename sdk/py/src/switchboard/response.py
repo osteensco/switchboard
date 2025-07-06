@@ -36,7 +36,7 @@ class Response():
             custom_queue_push: Callable | None = None,
     ) -> None:
 
-        assert len(Context.ids)==3, "ids should be a list of length three representing [run_id, step_id, task_id], if there is no task_id use '-1'"
+        assert len(context.ids)==3, "ids should be a list of length three representing [run_id, step_id, task_id], if there is no task_id use '-1'"
         self._cloud = cloud
         self._context = context
         self._custom = custom_queue_push
@@ -73,6 +73,8 @@ class Trigger(Response):
     '''
     def __init__(self, cloud: Cloud, db: DBInterface, name: str, custom_queue_push: Callable | None = None) -> None:
         super().__init__(cloud, db, name, Context([-1,-1,-1],True,True,True,{}), custom_queue_push=custom_queue_push)
+        self.add_body()
+        self.send()
 
 
 

@@ -5,9 +5,31 @@ from switchboard.response import Response
 from .db import DBMockInterface
 from switchboard.db import DB
 
+
+
+
+
+
+
 db = DB(Cloud.CUSTOM, DBMockInterface(None))
-def mockQueue():
-    pass
+
+# This class provides an interface in which tests can use to properly set their custom queue push functions for each task
+class InvocationQueue:
+    def __init__(self):
+        self._push_func = None
+
+    def set_push_function(self, func):
+        self._push_func = func
+
+    def push(self, body):
+        if self._push_func:
+            self._push_func(body)
+        else:
+            print(f"InvocationQueue: No push function set. Body: {body}")
+
+mock_invocation_queue = InvocationQueue()
+
+
 
 def my_task(context):
 
@@ -18,7 +40,7 @@ def my_task(context):
             db.interface, 
             "my_task", 
             context,
-            custom_queue_push=mockQueue
+            custom_queue_push=mock_invocation_queue.push
     )
     sb_response.add_body()
     sb_response.send()
@@ -34,7 +56,7 @@ def my_other_task(context):
             db.interface, 
             "my_task", 
             context,
-            custom_queue_push=mockQueue
+            custom_queue_push=mock_invocation_queue.push
     )
     sb_response.add_body()
     sb_response.send()
@@ -50,7 +72,7 @@ def final_task(context):
             db.interface, 
             "my_task", 
             context,
-            custom_queue_push=mockQueue
+            custom_queue_push=mock_invocation_queue.push
     )
     sb_response.add_body()
     sb_response.send()

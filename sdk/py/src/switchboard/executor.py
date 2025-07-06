@@ -1,3 +1,4 @@
+from typing import Callable
 from .db import DBInterface
 from .enums import Cloud, SwitchboardComponent
 from .invocation import Invoke
@@ -11,11 +12,11 @@ from .schemas import Context, Task
 
 
 
-def push_to_executor(cloud: Cloud, db: DBInterface, name: str, body: str) -> dict:
+def push_to_executor(cloud: Cloud, db: DBInterface, name: str, body: str, custom_execution_queue: Callable | None = None) -> dict:
 
     ep = db.get_endpoint(name, SwitchboardComponent.ExecutorQueue)
 
-    response = Invoke(cloud, ep, body)
+    response = Invoke(cloud, ep, body, custom_execution_queue)
     return response
 
 

@@ -1,5 +1,5 @@
 import json
-from typing import Self
+from typing import Callable, Self
 
 from .db import DB, DBInterface
 from .executor import push_to_executor
@@ -72,6 +72,7 @@ class Workflow:
         if self._initialized:
             return
         
+        self.custom_execution_queue = None
         self.cloud = cloud
         self.name = name
         self.step_idx = -1
@@ -85,6 +86,9 @@ class Workflow:
 
         self._initialized = True
 
+
+    def _set_custom_execution_queue(self, custom_execution_queue_function: Callable):
+        self.custom_execution_queue = custom_execution_queue_function
 
     @classmethod
     def _reset(cls):
@@ -285,11 +289,10 @@ class Workflow:
         return False
 
     
-    # @staticmethod
     def _enqueue_execution(self, cloud: Cloud, db: DBInterface, name: str, task: str):
         # the task needs to be added to the context at this point
         msg_body = json.dumps({"execute": task} | self.context.to_dict())
-        resp = push_to_executor(cloud, db, name, msg_body)
+        resp = push_to_executor(cloud, db, name, msg_body, self.custom_execution_queue)
         # TODO
         #   log response
 
@@ -427,10 +430,18 @@ def InitWorkflow(cloud: Cloud, name: str, db: DB, context: str):
     global WORKFLOW
     WORKFLOW = Workflow(cloud, name, db, context)
 
+@wf_interface
 def ClearWorkflow():
     global WORKFLOW
     if WORKFLOW:
         WORKFLOW = None
+
+@wf_interface
+def SetCustomExecutorQueue(executor_queue_function: Callable):
+    global WORKFLOW
+    assert WORKFLOW is not None
+    assert not isinstance(WORKFLOW, WaitStatus)
+    WORKFLOW._set_custom_execution_queue(executor_queue_function)
 
 @wf_interface
 def Call(task: str) -> None:

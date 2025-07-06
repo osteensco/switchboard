@@ -26,7 +26,7 @@ class DBMockInterface(DBInterface):
             return None
 
     def write(self, state):
-        self.all_states[id] = state
+        self.all_states[state.run_id] = state
 
     def get_endpoint(self, name: str, component: SwitchboardComponent) -> str:
         return "mocked/endpoint"
