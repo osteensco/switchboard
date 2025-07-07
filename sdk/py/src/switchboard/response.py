@@ -2,6 +2,7 @@ import json
 from dataclasses import dataclass
 from typing import Callable
 
+from switchboard.logging_config import log
 from switchboard.schemas import Context
 
 from .db import DBInterface
@@ -35,6 +36,12 @@ class Response():
             context: Context,
             custom_queue_push: Callable | None = None,
     ) -> None:
+
+        log.bind(
+            component="Response",
+            workflow_name=name,
+            context=context,
+        ).info("-- Response object created. --")
 
         assert len(context.ids)==3, "ids should be a list of length three representing [run_id, step_id, task_id], if there is no task_id use '-1'"
         self._cloud = cloud

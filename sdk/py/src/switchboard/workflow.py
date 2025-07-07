@@ -5,6 +5,7 @@ from .db import DB, DBInterface
 from .executor import push_to_executor
 from .schemas import State, Step, ParallelStep, Context 
 from .enums import Cloud, Status, StepType
+from .logging_config import log
 
 
 
@@ -90,11 +91,6 @@ class Workflow:
     def _set_custom_execution_queue(self, custom_execution_queue_function: Callable):
         self.custom_execution_queue = custom_execution_queue_function
 
-    @classmethod
-    def _reset(cls):
-        cls._instance = None
-        cls._initialized = False
-
 
     @staticmethod
     def _get_context(context: str) -> Context:
@@ -127,6 +123,7 @@ class Workflow:
         # handle context without task id
         # task id is only required for a task as part of a ParallelStep
         # -1 is the default value for task id to help identify that it is not actually in use
+        # TODO this should no longer be possible to only pass in ids of len 2, so this block should be removed
         if len(cntx.ids) == 2:
             cntx.ids.append(-1)
 
@@ -214,24 +211,37 @@ class Workflow:
         return state
 
 
-    def _add_step(self, name: StepType, *tasks):
+    def _add_step(self, type: StepType, step_name: str, *tasks):
         '''
         Add the next step to the state. Adding an additional step to the workflow state brings the assumption that it was attempted to be executed.
         The workflow state will not recognize that it's been executed until receiving a success response from the executor function.
         '''
 
         assert self.step_idx == len(self.state.steps)-1, f"The step_idx is incorrect, step_id: {self.step_idx}, state.steps: {self.state.steps}"
-        if name == StepType.Parallel:
+        self.context.executed, self.context.completed, self.context.success = False, False, False
+        if type == StepType.Parallel:
             step_id = self._generate_step_id()
             task_id = 0
             parallel_tasks = []
             for t in tasks:
-                parallel_tasks.append(Step(step_id,t,task_id=task_id))
+                parallel_tasks.append(Step(step_id, step_name, t, task_id=task_id))
                 task_id += 1
-            self.state.steps.append(ParallelStep(step_id, parallel_tasks))
+            self.state.steps.append(ParallelStep(step_id, step_name, parallel_tasks))
+            log.bind(
+                component="workflow_service",
+                workflow_name=self.name,
+                run_id=self.state.run_id,
+                step_name=step_name
+            ).info("-- ParallelStep added to workflow state. --")
         else:
             task = tasks[0]
-            self.state.steps.append(Step(self._generate_step_id(), task))
+            self.state.steps.append(Step(self._generate_step_id(), step_name, task))
+            log.bind(
+                component="workflow_service",
+                workflow_name=self.name,
+                run_id=self.state.run_id,
+                step_name=step_name
+            ).info("-- Step added to workflow state. --")
         
         assert self.step_idx+1 == len(self.state.steps)-1, f"The state does not have the right amount of steps. Expected len {self.step_idx+1}, state.steps is {self.state.steps}"
         
@@ -280,29 +290,71 @@ class Workflow:
         return True 
 
 
-    def _determine_step_execution(self, name: StepType, *tasks: str) -> bool:
+    def _determine_step_execution(self, type: StepType, step_name: str, *tasks: str) -> bool:
+        '''
+        Helps determine if a step has been executed or should be executed, or if it should be skipped on the current iteration.
+        '''
+
+        log.bind(
+            component="workflow_service",
+            workflow_name=self.name,
+            run_id=self.state.run_id,
+            step_name=step_name,
+            tasks=tasks
+        ).info("-- Determining step execution. --")
+
         if not self._is_waiting():
-            self._add_step(name, *tasks)
+            # if self.curr_step is None, this would indicate the first iteration of a newly triggered workflow
+            if not self.curr_step or self.curr_step.step_name != step_name:
+                self._add_step(type, step_name, *tasks)
             return True
-        if self._needs_retry(name, self.curr_step):
+        if self._needs_retry(type, self.curr_step):
             return True
         return False
 
     
     def _enqueue_execution(self, cloud: Cloud, db: DBInterface, name: str, task: str):
-        # the task needs to be added to the context at this point
-        msg_body = json.dumps({"execute": task} | self.context.to_dict())
-        resp = push_to_executor(cloud, db, name, msg_body, self.custom_execution_queue)
+        assert self.curr_step, "There should be a curr_step populated for the Workflow object when _enqueue_execution() is called."
         # TODO
-        #   log response
+        #   - 'workflow' should probably just be a field in the Context object
+        # the task and the workflow name needs to be added to the context at this point
+        msg_body = json.dumps({"workflow": name, "execute": task} | self.context.to_dict())
+        log.bind(
+            component="workflow_service",
+            workflow_name=name,
+            run_id=self.state.run_id,
+            step_name=self.curr_step.step_name,
+            task_key=task
+        ).info("-- Enqueuing task for execution. --")
+        
+        resp = push_to_executor(cloud, db, name, msg_body, self.custom_execution_queue)
+        
+        log.bind(
+            component="workflow_service",
+            workflow_name=name,
+            run_id=self.state.run_id,
+            step_name=self.curr_step.step_name,
+            task_key=task,
+            enqueue_response=resp
+        ).info("-- Enqueue Response received. --")
 
 
-    def _next(self) -> Self:
+    def _next(self, step_name, *tasks) -> Self:
+        log.bind(
+            component="workflow_service",
+            workflow_name=self.name,
+            run_id=self.state.run_id,
+            step_name=step_name,
+            tasks=tasks,
+            step_cnt=self.step_cnt,
+            step_idx=self.step_idx
+        ).info("-- Call passing to the next step node. --")
+
         self.step_cnt += 1
         return self
 
 
-    def call(self, task: str) -> Self | WaitStatus:
+    def call(self, step_name: str, task: str) -> Self | WaitStatus:
         """
         Executes a single task as a step in the workflow.
 
@@ -319,20 +371,29 @@ class Workflow:
             The Workflow instance to allow for method chaining, or a WaitStatus
             object if the workflow should pause.
         """
-        if self._determine_step_execution(StepType.Call, task):
+        if self._determine_step_execution(StepType.Call, step_name, task):
+
+            
             # walk through orchestration steps until we are at current call
             if self.step_cnt != self.step_idx:
-                return self._next()
+                return self._next(step_name, task)
             
             # we don't need to update the db until after a successful execution
             self._enqueue_execution(self.cloud, self.db, self.name, task)
         
         # when we determine the step doesn't need to be executed then the db just needs to be updated
         self._update_db(self.db)
+
+        log.bind(
+            component="workflow_service",
+            workflow_name=self.name,
+            run_id=self.state.run_id,
+            step_name=step_name
+        ).info("-- Returning WaitStatus from call() execution. --")
         return WaitStatus(self.status, self.state)
 
 
-    def parallel_call(self, *tasks: str) -> Self | WaitStatus:
+    def parallel_call(self, step_name: str, *tasks: str) -> Self | WaitStatus:
         """
         Executes multiple tasks in parallel as a single step in the workflow.
 
@@ -348,19 +409,25 @@ class Workflow:
             The Workflow instance to allow for method chaining, or a WaitStatus
             object if the workflow should pause.
         """
-        if self._determine_step_execution(StepType.Parallel, *tasks):
+        if self._determine_step_execution(StepType.Parallel, step_name, *tasks):
             assert isinstance(self.curr_step, ParallelStep)
             # walk through orchestration steps until we are at current call
             if self.step_cnt != self.step_idx:
-                return self._next()
+                return self._next(step_name, tasks)
             
             # we don't need to update the db until after a successful execution
             for task in tasks:
-
                 self._enqueue_execution(self.cloud, self.db, self.name, task)
         
         # when we determine the step doesn't need to be executed then the db just needs to be updated
         self._update_db(self.db)
+
+        log.bind(
+            component="workflow_service",
+            workflow_name=self.name,
+            run_id=self.state.run_id,
+            step_name=step_name
+        ).info("-- Returning WaitStatus from parallel_call() execution. --")
         return WaitStatus(self.status, self.state)
 
 
@@ -376,6 +443,11 @@ class Workflow:
         """
         if self.status is Status.InProcess:
             self.status = Status.Completed
+            log.bind(
+                component="workflow_service",
+                workflow_name=self.name,
+                run_id=self.state.run_id
+            ).info("-- Workflow marked as completed. --")
         # TODO
         #   log status
         return 200
@@ -429,6 +501,11 @@ def InitWorkflow(cloud: Cloud, name: str, db: DB, context: str):
     '''
     global WORKFLOW
     WORKFLOW = Workflow(cloud, name, db, context)
+    log.bind(
+        component="workflow_service", 
+        workflow_name=name,
+        context=context
+    ).info("-- Workflow initialized. --")
 
 @wf_interface
 def ClearWorkflow():
@@ -444,25 +521,25 @@ def SetCustomExecutorQueue(executor_queue_function: Callable):
     WORKFLOW._set_custom_execution_queue(executor_queue_function)
 
 @wf_interface
-def Call(task: str) -> None:
+def Call(step_name, task: str) -> None:
     '''
     Call a task in a workflow.
     A task string must match a key in the directory_map located in tasks.py as part of the executor function.
     '''
     global WORKFLOW
     assert WORKFLOW is not None
-    WORKFLOW = WORKFLOW.call(task)
+    WORKFLOW = WORKFLOW.call(step_name, task)
 
 
 @wf_interface
-def ParallelCall(*tasks: str) -> None:
+def ParallelCall(step_name, *tasks: str) -> None:
     '''
     Call a group of tasks that should run in parallel.
     The *tasks argument are strings that must match corresponding keys in the directory_map located in tasks.py as part of the executor function.
     '''
     global WORKFLOW
     assert WORKFLOW is not None
-    WORKFLOW = WORKFLOW.parallel_call(*tasks)
+    WORKFLOW = WORKFLOW.parallel_call(step_name, *tasks)
 
 
 @wf_interface

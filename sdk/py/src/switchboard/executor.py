@@ -1,8 +1,11 @@
 from typing import Callable
+
+from switchboard.response import Response
 from .db import DBInterface
 from .enums import Cloud, SwitchboardComponent
 from .invocation import Invoke
-from .schemas import Context, Task
+from .schemas import Context, ContextFromDict, Task
+from .logging_config import log
 
 
 
@@ -37,7 +40,13 @@ def push_to_executor(cloud: Cloud, db: DBInterface, name: str, body: str, custom
 #       finally:
 #           return status
 
-def switchboard_execute(context: dict, directory_map: dict[str, Task]) -> int:
+def switchboard_execute(
+        cloud: Cloud, 
+        db: DBInterface,
+        context: dict,
+        directory_map: dict[str, Task],
+        custom_invocation_queue: Callable | None = None
+) -> int:
 # Potential task categories that the executor should handle
 #   [ ] http endpoint
 #   [ ] compute (via sdk)
@@ -64,14 +73,31 @@ def switchboard_execute(context: dict, directory_map: dict[str, Task]) -> int:
 # pubsub pattern support:
 #       https://docs.aws.amazon.com/prescriptive-guidance/latest/modernization-integrating-microservices/pub-sub.html
 #       user defines a task that publishes a message to the pubsub queue and each worker would need to have a Response() object created as part of their code
-    
+
+# The context in the executor will have two additonal fields -
+#   'workflow': the workflows name - str
+#   'execute': the task that should be executed, this should be a key in `directory_map` - str
+
     if (task_key := context['execute']) in directory_map:
+        log.bind(
+            component="executor_service",
+            workflow_name=context.get('workflow'),
+            run_id=context.get('ids', [None])[0],
+            context=context,
+            task_key=task_key
+        ).info("-- Executor attempting to call task from directory_map. --")
         task = directory_map[task_key]
 
         # all functions passed into tasks inside of the directory_map should take 
         # the raw context as an argument and return a valid status code
+        cntxt = ContextFromDict(context)
+        cntxt.executed = True
+        executor_response = Response(cloud, db, context['workflow'], cntxt, custom_queue_push=custom_invocation_queue)
+        executor_response.add_body()
+        executor_response.send()
 
-        return task.execute(Context(context["ids"],context["executed"],context["completed"],context["success"],context["cache"]))
+        task_response = task.execute(cntxt)
+        return task_response
     else:
         return 404
 

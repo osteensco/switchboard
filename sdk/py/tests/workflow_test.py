@@ -2,7 +2,7 @@ import pytest
 from unittest.mock import patch
 from switchboard.enums import Status, Cloud, StepType, SwitchboardComponent, TableName
 from switchboard.schemas import State, Context, Step, ParallelStep
-from switchboard.workflow import WaitStatus, Workflow, InitWorkflow, Call, ParallelCall
+from switchboard.workflow import ClearWorkflow, WaitStatus, Workflow, InitWorkflow, Call, ParallelCall
 from switchboard.db import DBInterface, DB
 
 
@@ -48,7 +48,7 @@ class DBMockInterface(DBInterface):
 # fixtures
 @pytest.fixture(autouse=True)
 def reset_workflow_singleton():
-    Workflow._reset()
+    ClearWorkflow()
 
 
 

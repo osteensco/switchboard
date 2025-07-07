@@ -1,5 +1,5 @@
 import json
-from switchboard.schemas import Cloud
+from switchboard.schemas import Cloud, Context, ContextFromDict
 from switchboard.schemas import Task
 from switchboard.response import Response
 from .db import DBMockInterface
@@ -31,53 +31,35 @@ mock_invocation_queue = InvocationQueue()
 
 
 
-def my_task(context):
+def generic_response(context: Context):
+    context.success = True
+    context.completed = True
+    sb_response = Response(
+            Cloud.CUSTOM, 
+            db.interface, 
+            "my_workflow", 
+            context,
+            custom_queue_push=mock_invocation_queue.push
+    )
+    sb_response.add_body()
+    sb_response.send()
 
+    return 200
+
+
+
+def my_task(context: Context):
     print("Executing my_task (task 1)")
+    return generic_response(context)
 
-    sb_response = Response(
-            Cloud.CUSTOM, 
-            db.interface, 
-            "my_task", 
-            context,
-            custom_queue_push=mock_invocation_queue.push
-    )
-    sb_response.add_body()
-    sb_response.send()
-
-    return 200
-
-def my_other_task(context):
-    
+def my_other_task(context: Context):
     print("Executing my_other_task (task 2)")
+    return generic_response(context)
 
-    sb_response = Response(
-            Cloud.CUSTOM, 
-            db.interface, 
-            "my_task", 
-            context,
-            custom_queue_push=mock_invocation_queue.push
-    )
-    sb_response.add_body()
-    sb_response.send()
 
-    return 200
-
-def final_task(context):
-    
-    print("Executing my_task (task 3)")
-
-    sb_response = Response(
-            Cloud.CUSTOM, 
-            db.interface, 
-            "my_task", 
-            context,
-            custom_queue_push=mock_invocation_queue.push
-    )
-    sb_response.add_body()
-    sb_response.send()
-
-    return 200
+def final_task(context: Context):
+    print("Executing final_task (task 3)")
+    return generic_response(context)
 
 
 

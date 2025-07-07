@@ -21,17 +21,19 @@ class Task:
 @dataclass
 class Step:
     step_id: int
+    step_name: str # used to identify if step has already been called in _determine_step_execution
     task_key: str # key that will be used to lookup function in directory_map in executor function's tasks.py
     executed: bool = False
     completed: bool = False
     success: bool = False
-    task_id: int = -1
+    task_id: int = -1 # -1 unless step is part of a tasks list in a parallel step
     retries: int = 0
 
 
 @dataclass
 class ParallelStep:
     step_id: int
+    step_name: str # used to identify if step has already been called in _determine_step_execution
     tasks: list[Step] 
     executed: bool = False
     completed: bool = False
@@ -49,6 +51,9 @@ def NewState(dict) -> State:
     return State(dict["name"], dict["run_id"], dict["steps"], dict["cache"])
 
 
+
+# TODO
+#   - a context object might need to just have the workflow name as a field?
 # context = {
 #             "ids": [
 #                 100, # run id
@@ -81,6 +86,12 @@ class Context:
                 "success": self.success,
                 "cache": self.cache,
                 }
+
+def ContextFromDict(context: dict) -> Context:
+    '''
+    Converts the context in dictionary form to a Context object.
+    '''
+    return Context(context["ids"],context["executed"],context["completed"],context["success"],context["cache"])
 
 
 # dataclass for cloud endpoints.
