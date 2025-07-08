@@ -18,7 +18,7 @@ from .db import DBMockInterface
 def test_workflow_integration():
     # 1. Initialize the workflow
     db = DB(Cloud.CUSTOM, DBMockInterface(None))
-    context = '{"ids": [-1,-1,-1], "executed": true, "completed": true, "success": true}'
+    context = '{{"ids": [-1,-1,-1], "executed": true, "completed": true, "success": true, "cache": {{}}}}'
     InitWorkflow(Cloud.CUSTOM, 'test_workflow', db, context)
 
     # 2. Mock the executor push
@@ -43,8 +43,8 @@ def test_workflow_integration():
         assert final_status == 200
 
     # 6. Simulate the response from the executor
-    ClearWorkflow()
-    response_context = '{"ids": [1, 1, -1], "executed": true, "completed": true, "success": true}'
+    ClearWorkflow(Cloud.CUSTOM, 'clear', db, context)
+    response_context = '{{"ids": [1, 1, -1], "executed": true, "completed": true, "success": true, "cache": {{}}}}'
     InitWorkflow(Cloud.CUSTOM, 'test_workflow', db, response_context)
 
     Call("step2", "my_task")
@@ -81,7 +81,7 @@ def test_endtoend_integration():
         Call("step3", "final_task")
 
         Done()
-        ClearWorkflow()
+        ClearWorkflow(Cloud.CUSTOM, 'clear', db, context)
 
     def executor_serverless_function(context):
         # The executor service gets its custom push function via the response object in tasks.py
@@ -110,13 +110,14 @@ def test_endtoend_integration():
             executor_payload = executor_queue.pop(0)
             executor_serverless_function(executor_payload)
 
+
     # 3. Assert the final state
     final_state = db.interface.read('test_workflow', 1)
     assert final_state is not None
     assert len(final_state.steps) == 3, f"{final_state.steps}"
-    assert final_state.steps[0].step_id == 1
-    assert final_state.steps[1].step_id == 2
-    assert final_state.steps[2].step_id == 3
+    assert final_state.steps[0].step_id == 0
+    assert final_state.steps[1].step_id == 1
+    assert final_state.steps[2].step_id == 2
     assert final_state.steps[2].success
 
 

@@ -8,9 +8,9 @@ logger.add(
     sys.stdout,
     serialize=True,  # Let loguru handle the JSON conversion
     level="DEBUG",
-    format="<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green> | <level>{level: <8}</level> | <cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - <level>{message}</level>\n\n",
+    format="<level>{message}</level> | <green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green> | <level>{level: <8}</level> | <cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan>",
     backtrace=True,
-    diagnose=True,
+    # diagnose=True,
 )
 
 # Export the configured logger
