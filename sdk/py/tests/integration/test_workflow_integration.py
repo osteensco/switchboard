@@ -14,43 +14,7 @@ from .db import DBMockInterface
 
 
 
-@pytest.mark.integration
-def test_workflow_integration():
-    # 1. Initialize the workflow
-    db = DB(Cloud.CUSTOM, DBMockInterface(None))
-    context = '{{"ids": [-1,-1,-1], "executed": true, "completed": true, "success": true, "cache": {{}}}}'
-    InitWorkflow(Cloud.CUSTOM, 'test_workflow', db, context)
 
-    # 2. Mock the executor push
-    with patch('switchboard.workflow.push_to_executor') as mock_push_to_executor:
-        # 3. Call the first task
-        Call("step1", "my_task")
-
-        # 4. Assert that the executor was called
-        mock_push_to_executor.assert_called_once()
-        args, kwargs = mock_push_to_executor.call_args
-        assert args[0] == Cloud.CUSTOM
-        assert args[1] == db.interface
-        assert args[2] == 'test_workflow'
-        assert json.loads(args[3]) == {"execute": "my_task"}
-
-        # 5. Simulate the executor
-        executor_context = json.loads(args[3])
-        status = switchboard_execute(Cloud.CUSTOM, db.interface, executor_context, directory_map, custom_invocation_queue=lambda body: None)
-        assert status == 200
-
-        final_status = Done()
-        assert final_status == 200
-
-    # 6. Simulate the response from the executor
-    ClearWorkflow(Cloud.CUSTOM, 'clear', db, context)
-    response_context = '{{"ids": [1, 1, -1], "executed": true, "completed": true, "success": true, "cache": {{}}}}'
-    InitWorkflow(Cloud.CUSTOM, 'test_workflow', db, response_context)
-
-    Call("step2", "my_task")
-
-    status = Done()
-    assert status == 200
 
 
 

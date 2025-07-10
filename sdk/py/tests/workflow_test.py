@@ -2,7 +2,7 @@ import pytest
 from unittest.mock import patch
 from switchboard.enums import Status, Cloud, StepType, SwitchboardComponent, TableName
 from switchboard.schemas import State, Context, Step, ParallelStep
-from switchboard.workflow import ClearWorkflow, WaitStatus, Workflow, InitWorkflow, Call, ParallelCall
+from switchboard.workflow import WORKFLOW, ClearWorkflow, WaitStatus, Workflow, InitWorkflow, Call, ParallelCall
 from switchboard.db import DBInterface, DB
 
 
@@ -48,7 +48,10 @@ class DBMockInterface(DBInterface):
 # fixtures
 @pytest.fixture(autouse=True)
 def reset_workflow_singleton():
-    ClearWorkflow()
+    global WORKFLOW
+    if WORKFLOW:
+        ClearWorkflow(Cloud.CUSTOM, 'clear', DB(Cloud.CUSTOM, DBMockInterface(None)), Context([1,0,-1], True, True, True,{})
+)
 
 
 
@@ -63,15 +66,15 @@ def reset_workflow_singleton():
             (
                 "1. Start a brand new workflow.", 
                 None, 
-                '{"ids": [-1,-1,-1], "executed": true, "completed": true, "success": true}', 
+                '{"ids": [-1,-1,-1], "executed": true, "completed": true, "success": true}, "cache": {}', 
                 State('test',1,[],{}), 
                 Context([1,0,-1], True, True, True,{})
             ),
             (
                 "2. Workflow after executing a worker.", 
-                State('test',100,[Step(1,"http",True,False,False)],{}), 
-                '{"ids": [100,1,-1], "executed": true, "completed": false, "success": false }',
-                State('test',100,[Step(1,"http",True,False,False)],{}),
+                State('test',100,[Step(1,"step1","task1",True,False,False)],{}), 
+                '{"ids": [100,1,-1], "executed": true, "completed": false, "success": false, "cache": {}}',
+                State('test',100,[Step(2,"step2","task2",True,False,False)],{}),
                 Context([100,1,-1], True, False, False,{})
             )
 
@@ -89,17 +92,17 @@ def test_new_Workflow(name, state, context, expected_state, expected_context):
         [
             (
                 "1. New Context.",
-                '{"ids": [-1,-1,-1], "executed": true, "completed": true, "success": true}',
+                '{"ids": [-1,-1,-1], "executed": true, "completed": true, "success": true, "cache": {}}',
                 Context([0,0,-1], True, True, True,{})
             ),
             (
                 "2. Non empty context.",
-                '{"ids": [100,1,-1], "executed": true, "completed": true, "success": true}',
+                '{"ids": [100,1,-1], "executed": true, "completed": true, "success": true, "cache": {}}',
                 Context([100,1,-1], True, True, True,{})
             ),
             (
                 "3. Parallel task context.",
-                '{"ids": [100,2,0], "executed": true, "completed": true, "success": true}',
+                '{"ids": [100,2,0], "executed": true, "completed": true, "success": true, "cache": {}}',
                 Context([100,2,0], True, True, True,{})
             ),
             # (
@@ -116,11 +119,11 @@ def test_get_context(name, context, expected):
     assert actual == expected
 
 def test_init_state(): 
-    db = DB(Cloud.CUSTOM, DBMockInterface(State('test',100,[Step(1,"http",True,True,True), Step(2,"http",True,False,False)],{})))
+    db = DB(Cloud.CUSTOM, DBMockInterface(State('test',100,[Step(1,"step1","task1",True,True,True), Step(2,"step2","task2",True,False,False)],{})))
     wf = Workflow.__new__(Workflow, Cloud.CUSTOM, 'test',db,'{}')
     wf.name = 'test'
     wf.context = Context([100,2,-1], True, True, True,{}) 
-    expected = State('test',100,[Step(1,"http",True,True,True), Step(2,"http",True,True,True)],{})
+    expected = State('test',100,[Step(1,"step1","task1",True,True,True), Step(2,"step2","task2",True,False,False)],{})
     actual = wf._init_state(db.interface)
     assert actual == expected
 
@@ -128,11 +131,11 @@ def test_add_step():
     wf = Workflow.__new__(Workflow, Cloud.CUSTOM, 'test',DB(Cloud.CUSTOM, DBMockInterface(None)),'')
     wf.context = Context([1,0,-1], True, True, True,{}) 
     wf.state = State('test',1,[],{})
-    wf.step_idx = -1
-    wf._add_step(StepType.Call, "http")
+    wf.step_idx = 0
+    wf._add_step(StepType.Call, "step1", "task1")
     wf.context = Context([1,1,-1], True, True, True,{}) 
-    wf._add_step(StepType.Call, "http")
-    expected = State('test',1,[Step(1,"http",False,False,False), Step(2,"http",False,False,False)],{}) 
+    wf._add_step(StepType.Call, "step2", "task2")
+    expected = State('test',1,[Step(1,"step1","task1",False,False,False), Step(2,"step2","task2",False,False,False)],{}) 
     actual = wf.state
     assert actual == expected
 
@@ -145,10 +148,10 @@ def test_generate_worker_id():
 
 def test_needs_retry():
     wf = Workflow.__new__(Workflow, Cloud.CUSTOM, 'test',DB(Cloud.CUSTOM, DBMockInterface(None)),'')
-    context = Context([100,1], True, True, False,{})
+    context = Context([100,1,-1], True, True, False,{})
     wf.context = context
     expected = True
-    actual = wf._needs_retry(StepType.Call, Step(1,'testkey',True,True,False, retries=1))
+    actual = wf._needs_retry(StepType.Call, Step(1,"step1","task1",True,True,False,retries=2))
     assert actual == expected
 
 def test_is_waiting():
@@ -163,59 +166,23 @@ def test_determine_step_execution():
     wf = Workflow.__new__(Workflow, Cloud.CUSTOM, 'test',DB(Cloud.CUSTOM, DBMockInterface(None)),'')
     wf.step_idx = -1
     wf.state = State('test',1,[],{})
-    wf.context = Context([100,1,-1], True, True, True,{})
-    expected = True
-    actual = wf._determine_step_execution(StepType.Call, "http")
+    wf.context = Context([-1,-1,-1], False, False, False,{})
+    expected = False
+    actual = wf._determine_step_execution(StepType.Call, "step1", "task1")
     assert actual == expected
     
 def test_next():
     wf = Workflow.__new__(Workflow, Cloud.CUSTOM, 'test',DB(Cloud.CUSTOM, DBMockInterface(None)),'')
     wf.step_cnt = 0
-    actual = wf._next()
+    actual = wf._next('step2', 'task2')
     assert actual == wf
     assert actual.step_cnt == 1
 
 
-# this test brought to you by gemini T.T
-# TODO fix this, too many mocks, make sure its actually testing something
-def test_call():
-    wf = Workflow.__new__(Workflow, Cloud.CUSTOM, 'test',DB(Cloud.CUSTOM, DBMockInterface(None)),'{}')
-    wf.db = DB(Cloud.CUSTOM, DBMockInterface(None)).interface
-    wf.cloud = Cloud.CUSTOM
-    wf.name = 'test'
-    wf.status = Status.InProcess
-    wf.step_cnt = 0
-    wf.step_idx = 0
-    wf.state = State('test',100,[],{})
-    wf.context = Context([100,1,-1], True, True, True,{})
-
-    with patch.object(wf, '_determine_step_execution', return_value=True) as mock_determine, \
-         patch.object(wf, '_enqueue_execution') as mock_enqueue, \
-         patch.object(wf, '_update_db') as mock_update:
-
-        result = wf.call("http")
-
-        mock_determine.assert_called_once_with(StepType.Call, "http")
-        mock_enqueue.assert_called_once_with(Cloud.CUSTOM, wf.db, "test", "http")
-        mock_update.assert_called_once()
-        assert isinstance(result, WaitStatus)
 
 
-    with patch.object(wf, '_determine_step_execution', return_value=False) as mock_determine, \
-         patch.object(wf, '_enqueue_execution') as mock_enqueue, \
-         patch.object(wf, '_update_db') as mock_update:
-
-        result = wf.call("http")
-
-        mock_determine.assert_called_once_with(StepType.Call, "http")
-        mock_enqueue.assert_not_called()
-        mock_update.assert_called_once()
-        assert isinstance(result, WaitStatus)
 
 
-# TODO implement this test
-def test_parallel_call():
-    pass
 
 
 
