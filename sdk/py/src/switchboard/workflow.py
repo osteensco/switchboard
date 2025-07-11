@@ -141,8 +141,10 @@ class Workflow:
 
         state = db.read(self.name, self.context.ids[0])
         if state:
+            print(f"!!!!!! found state={state}")
             assert isinstance(state, State) 
         else:
+            print(f"!!!!! could not find name={self.name}, run_id={self.context.ids[0]}, state={state}")
             # handle new state creation (new workflow run)
             id = self._generate_id(db)
             state = State(self.name, id, [], {})
