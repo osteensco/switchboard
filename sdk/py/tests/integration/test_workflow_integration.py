@@ -5,7 +5,7 @@ from unittest.mock import MagicMock, patch
 
 from switchboard.enums import Cloud, Status
 from switchboard.response import Response, Trigger
-from switchboard.workflow import ClearWorkflow, InitWorkflow, Call, Done, SetCustomExecutorQueue
+from switchboard.workflow import ClearWorkflow, GetCache, InitWorkflow, Call, Done, ParallelCall, SetCustomExecutorQueue
 from switchboard.db import DB, DBInterface
 from switchboard.schemas import State, Context
 from switchboard.executor import switchboard_execute
@@ -22,11 +22,12 @@ from .db import DBMockInterface
 def test_endtoend_integration():
     db = DB(Cloud.CUSTOM, DBMockInterface(None))
     
-    # Simulate two distinct message queues for the two microservices
+    # Simulate message queues
     workflow_queue = []
     executor_queue = []
 
     # Define custom push functions for the services
+    # For testing we have to utilize Cloud.CUSTOM
     def push_to_workflow_queue(body):
         print(f"body pushed to workflow queue: {body}")
         workflow_queue.append(body)
@@ -36,13 +37,27 @@ def test_endtoend_integration():
         executor_queue.append(body)
 
     def workflow_serverless_function(context):
-        # The workflow service uses a custom push function to send messages to the executor
         InitWorkflow(Cloud.CUSTOM, 'test_workflow', db, context)
+        # The workflow service uses a custom push function to send messages to the executor
         SetCustomExecutorQueue(push_to_executor_queue)
-    
+        
+        # Initialize workflow's cache
+        cache = {"test_true": None, "test_false": None} | GetCache()
+
         Call("step1", "my_task")
         Call("step2", "my_other_task")
         Call("step3", "final_task")
+
+        ParallelCall("step4", "psyyych", "anotherone", "yetanother")
+        if cache["test_true"]:
+            ParallelCall("step5", "conditional1", "conditional2")
+        else:
+            print(f"!!!!! - 'test_true'={cache["test_true"]}")
+            Call("badstep1", "ishouldntrun1")
+        if cache["test_false"]:
+            print(f"!!!!! - 'test_false'={cache["test_false"]}")
+            Call("badstep2", "ishouldntrun2")
+
 
         Done()
         ClearWorkflow(Cloud.CUSTOM, 'clear', db, context)
@@ -78,11 +93,11 @@ def test_endtoend_integration():
     # 3. Assert the final state
     final_state = db.interface.read('test_workflow', 1)
     assert final_state is not None
-    assert len(final_state.steps) == 3, f"{final_state.steps}"
-    assert final_state.steps[0].step_id == 0
-    assert final_state.steps[1].step_id == 1
-    assert final_state.steps[2].step_id == 2
-    assert final_state.steps[2].success
+    assert len(final_state.steps) == 5, f"{final_state.steps}"
+    assert [step.step_id for step in final_state.steps] == [0,1,2,3,4]
+    assert [step.step_name for step in final_state.steps] == ['step1', 'step2', 'step3', 'step4', 'step5']
+    assert [step.success for step in final_state.steps] == [True,True,True,True,True]
+    assert final_state.cache == {"test_true": True, "test_false": False}
 
 
 

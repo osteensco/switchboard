@@ -179,9 +179,9 @@ class Workflow:
         # handle context from a task in a ParallelStep vs Step
         if self.context.ids[2] >= 0: # id at index 2 is the task id, which is -1 unless the step is part of a ParallelStep
             assert isinstance(self.curr_step, ParallelStep)
-            executed = True
-            completed = True
-            success = True
+            # executed = True
+            # completed = True
+            # success = True
 
             # we ingest the context from an individual task, but need to analyze it within the context of the whole set of parallel tasks            
             for task in self.curr_step.tasks:
@@ -192,18 +192,26 @@ class Workflow:
                         task.completed = True
                     if self.context.success:
                         task.success = True
+                    break
 
-                if not executed and not completed and not success:
-                    continue
+            #     if not executed and not completed and not success:
+            #         continue
+            #
+            #     executed = False if not task.executed else executed
+            #     completed = False if not task.completed else completed
+            #     success = False if not task.success else success
+            #            
+            # # the context referenced by the workflow will need to represent the ParallelStep as a whole
+            # self.curr_step.executed, self.context.executed = executed, executed
+            # self.curr_step.completed, self.context.completed = completed, completed
+            # self.curr_step.success, self.context.success = success, success
 
-                executed = False if not task.executed else executed
-                completed = False if not task.completed else completed
-                success = False if not task.success else success
-            
-            # the context referenced by the workflow will need to represent the ParallelStep as a whole
-            self.curr_step.executed, self.context.executed = executed, executed
-            self.curr_step.completed, self.context.completed = completed, completed
-            self.curr_step.success, self.context.success = success, success
+            self.curr_step.executed = min([task.executed for task in self.curr_step.tasks])
+            self.context.executed = self.curr_step.executed
+            self.curr_step.completed = min([task.completed for task in self.curr_step.tasks])
+            self.context.completed = self.curr_step.completed
+            self.curr_step.success = min([task.success for task in self.curr_step.tasks])
+            self.context.success = self.curr_step.success
                 
         else:
             assert isinstance(self.curr_step, Step)
@@ -460,21 +468,21 @@ class Workflow:
             The Workflow instance to allow for method chaining, or a WaitStatus
             object if the workflow should pause.
         """
+        if self.step_cnt < self.step_idx:
+            return self._next(step_name, *tasks)
+
         if self._determine_step_execution(StepType.Parallel, step_name, *tasks):
             assert isinstance(self.curr_step, ParallelStep)
-            # walk through orchestration steps until we are at current call
-            if self.step_cnt != self.step_idx:
-                return self._next(step_name, tasks)
             
             for task_key in tasks:
                 task_id = None
                 # TODO
                 #   - implement a better search algorithm to grab the task_id
                 for task in self.curr_step.tasks: 
-                    if task.step_name == task_key:
+                    if task.task_key == task_key:
                         task_id = task.task_id
                         break
-                assert task_id, f"task_id was not found in parallel_call - tasks(arg): {tasks}, curr_step.tasks: {self.curr_step.tasks}"
+                assert task_id != None, f"task_id was not found in parallel_call - tasks(arg): {tasks}, curr_step.tasks: {[task.task_key for task in self.curr_step.tasks]}"
                 self._enqueue_execution(self.cloud, self.db, self.name, task_key, task_id)
         
         elif self.curr_step and self.curr_step.success:
