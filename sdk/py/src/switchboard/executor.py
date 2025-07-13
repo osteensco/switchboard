@@ -93,7 +93,7 @@ def switchboard_execute(
         cntxt = ContextFromDict(context)
         cntxt.executed = True
         executor_response = Response(cloud, db, context['workflow'], cntxt, custom_queue_push=custom_invocation_queue)
-        executor_response.add_body()
+        # executor_response.add_body()
         executor_response.send()
 
         task_response = task.execute(cntxt)

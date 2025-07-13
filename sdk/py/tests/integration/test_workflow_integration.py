@@ -58,6 +58,7 @@ def test_endtoend_integration():
             print(f"!!!!! - 'test_false'={cache["test_false"]}")
             Call("badstep2", "ishouldntrun2")
 
+        Call("endstep", "endstep")
 
         Done()
         ClearWorkflow(Cloud.CUSTOM, 'clear', db, context)
@@ -93,10 +94,10 @@ def test_endtoend_integration():
     # 3. Assert the final state
     final_state = db.interface.read('test_workflow', 1)
     assert final_state is not None
-    assert len(final_state.steps) == 5, f"{final_state.steps}"
-    assert [step.step_id for step in final_state.steps] == [0,1,2,3,4]
-    assert [step.step_name for step in final_state.steps] == ['step1', 'step2', 'step3', 'step4', 'step5']
-    assert [step.success for step in final_state.steps] == [True,True,True,True,True]
+    assert len(final_state.steps) == 6, f"{final_state.steps}"
+    assert [step.step_id for step in final_state.steps] == [0,1,2,3,4,5]
+    assert [step.step_name for step in final_state.steps] == ['step1', 'step2', 'step3', 'step4', 'step5', 'endstep']
+    assert [step.success for step in final_state.steps] == [True,True,True,True,True,True]
     assert final_state.cache == {"test_true": True, "test_false": False}
 
 

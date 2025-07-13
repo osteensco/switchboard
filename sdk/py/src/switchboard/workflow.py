@@ -99,7 +99,7 @@ class Workflow:
         '''
 
         raw_context = json.loads(context) 
-
+        print(f"!!!!!!!!!!!!! - {raw_context}")
         # required fields
         assert "ids" in raw_context.keys(), "required field 'ids' not present in context."
         assert "executed" in raw_context.keys(), "required field 'executed' not present in context."
@@ -158,7 +158,7 @@ class Workflow:
         # keys can and should be overwritten in the cache
         # TODO 
         #   log when a key is overwritten in the cache
-        for k,v in self.context.cache:
+        for k,v in self.context.cache.items():
             state.cache[k] = v
         
         self.step_idx = len(state.steps)-1
@@ -179,9 +179,6 @@ class Workflow:
         # handle context from a task in a ParallelStep vs Step
         if self.context.ids[2] >= 0: # id at index 2 is the task id, which is -1 unless the step is part of a ParallelStep
             assert isinstance(self.curr_step, ParallelStep)
-            # executed = True
-            # completed = True
-            # success = True
 
             # we ingest the context from an individual task, but need to analyze it within the context of the whole set of parallel tasks            
             for task in self.curr_step.tasks:
@@ -206,11 +203,19 @@ class Workflow:
             # self.curr_step.completed, self.context.completed = completed, completed
             # self.curr_step.success, self.context.success = success, success
 
-            self.curr_step.executed = min([task.executed for task in self.curr_step.tasks])
+            executed = []
+            completed = []
+            success = []
+            for task in self.curr_step.tasks:
+                executed.append(task.executed)
+                completed.append(task.completed)
+                success.append(task.success)
+            
+            self.curr_step.executed = min(executed)
             self.context.executed = self.curr_step.executed
-            self.curr_step.completed = min([task.completed for task in self.curr_step.tasks])
+            self.curr_step.completed = min(completed)
             self.context.completed = self.curr_step.completed
-            self.curr_step.success = min([task.success for task in self.curr_step.tasks])
+            self.curr_step.success = min(success)
             self.context.success = self.curr_step.success
                 
         else:

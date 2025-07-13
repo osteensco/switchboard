@@ -41,7 +41,7 @@ def generic_response(context: Context):
             context,
             custom_queue_push=mock_invocation_queue.push
     )
-    sb_response.add_body()
+    # sb_response.add_body()
     sb_response.send()
 
     return 200
@@ -49,52 +49,58 @@ def generic_response(context: Context):
 
 
 def my_task(context: Context):
-    print("Executing my_task (task 1)")
+    print("!!!!!! - Executing my_task (task 1)")
     return generic_response(context)
 
 def my_other_task(context: Context):
-    print("Executing my_other_task (task 2)")
+    print("!!!!!! - Executing my_other_task (task 2)")
     return generic_response(context)
 
 def final_task(context: Context):
-    print("Executing final_task (task 3)")
+    print("!!!!!! - Executing final_task (task 3)")
     return generic_response(context)
 
 # first set of parallel tasks
 def psyyych(context: Context):
-    print("Executing psyyych (parallel task)")
+    print("!!!!!! - Executing psyyych (parallel task)")
     return generic_response(context)
 
 def anotherone(context: Context):
-    print("Executing anotherone (parallel task)")
+    print("!!!!!! - Executing anotherone (parallel task)")
     return generic_response(context)
 
 def yetanother(context: Context):
-    context.cache['test_true'] = True
-    print("Executing yetanother (parallel task)")
-    return generic_response(context)
+    cntxt = context
+    cntxt.cache['test_true'] = True
+
+    print("!!!!!! - Executing yetanother (parallel task)")
+    return generic_response(cntxt)
 
 
 # second set of parallel tasks
 def conditional1(context: Context):
     context.cache['test_false'] = False
-    print("Executing conditional1 (parallel task)")
+    print("!!!!!! - Executing conditional1 (parallel task)")
     return generic_response(context)
 
 def conditional2(context: Context):
-    print("Executing conditional2 (parallel task)")
+    print("!!!!!! - Executing conditional2 (parallel task)")
     return generic_response(context)
 
+# these shouldn't run
 def badstep1(context: Context):
-    print("I SHOULDNT RUN NOOOOOO (badstep1)")
+    print("!!!!!! - I SHOULDNT RUN NOOOOOO (badstep1)")
     return generic_response(context)
 
 def badstep2(context: Context):
-    print("I SHOULDNT RUN NOOOOOO (badstep2)")
+    print("!!!!!! - I SHOULDNT RUN NOOOOOO (badstep2)")
     return generic_response(context)
 
 
-
+# actual final task
+def endstep(context: Context):
+    print("!!!!!! - This is the last executed task")
+    return generic_response(context)
 
 
 
@@ -117,9 +123,10 @@ directory_map = {
     "anotherone": Task("anotherone",anotherone),
     "yetanother": Task("yetanother",yetanother),
     "conditional1": Task("conditional1",conditional1),
-    "conditional1": Task("conditional2",conditional2),
+    "conditional2": Task("conditional2",conditional2),
     "badstep1": Task("badstep1",badstep1),
-    "badstep2": Task("badstep2",badstep2)
+    "badstep2": Task("badstep2",badstep2),
+    "endstep": Task("endstep", endstep)
 }
 
 

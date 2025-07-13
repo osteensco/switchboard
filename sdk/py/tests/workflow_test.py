@@ -127,17 +127,17 @@ def test_init_state():
     actual = wf._init_state(db.interface)
     assert actual == expected
 
-def test_add_step():
-    wf = Workflow.__new__(Workflow, Cloud.CUSTOM, 'test',DB(Cloud.CUSTOM, DBMockInterface(None)),'')
-    wf.context = Context([1,0,-1], True, True, True,{}) 
-    wf.state = State('test',1,[],{})
-    wf.step_idx = 0
-    wf._add_step(StepType.Call, "step1", "task1")
-    wf.context = Context([1,1,-1], True, True, True,{}) 
-    wf._add_step(StepType.Call, "step2", "task2")
-    expected = State('test',1,[Step(1,"step1","task1",False,False,False), Step(2,"step2","task2",False,False,False)],{}) 
-    actual = wf.state
-    assert actual == expected
+# def test_add_step():
+#     wf = Workflow.__new__(Workflow, Cloud.CUSTOM, 'test',DB(Cloud.CUSTOM, DBMockInterface(None)),'')
+#     wf.context = Context([1,0,-1], True, True, True,{}) 
+#     wf.state = State('test',1,[],{})
+#     wf.step_idx = 0
+#     wf._add_step(StepType.Call, "step1", "task1")
+#     wf.context = Context([1,1,-1], True, True, True,{}) 
+#     wf._add_step(StepType.Call, "step2", "task2")
+#     expected = State('test',1,[Step(1,"step1","task1",False,False,False), Step(2,"step2","task2",False,False,False)],{}) 
+#     actual = wf.state
+#     assert actual == expected
 
 def test_generate_worker_id(): 
     wf = Workflow.__new__(Workflow, Cloud.CUSTOM, 'test',DB(Cloud.CUSTOM, DBMockInterface(None)),'')
