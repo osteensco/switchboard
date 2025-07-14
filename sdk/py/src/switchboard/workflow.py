@@ -53,6 +53,12 @@ class Workflow:
     def __new__(cls, cloud: Cloud, name: str, db: DB, context: str) -> Self:
         if not cls._instance:
             cls._instance = super().__new__(cls)
+        else:
+            log.bind(
+                component="workflow_service", 
+                workflow_name=name,
+                context=context
+            ).debug("-- WORKFLOW singleton already exists! --")
         return cls._instance
 
     def __init__(self, cloud: Cloud, name: str, db: DB, context: str) -> None:
@@ -86,6 +92,11 @@ class Workflow:
         self.state = self._init_state(self.db)
 
         self._initialized = True
+        log.bind(
+            component="workflow_service", 
+            workflow_name=name,
+            context=context
+        ).info("-- Workflow.__init__ executed. --")
 
 
     def _set_custom_execution_queue(self, custom_execution_queue_function: Callable):
@@ -234,6 +245,13 @@ class Workflow:
             state=self.state
         ).info("-- State retrieved. --")
         return state
+
+
+
+    @classmethod
+    def reset_singleton(cls):
+        cls._instance = None
+        cls._initialized = False
 
 
     def _add_step(self, type: StepType, step_name: str, *tasks):
@@ -575,12 +593,19 @@ def InitWorkflow(cloud: Cloud, name: str, db: DB, context: str):
             context: The context of the Workflow. This typically represents the step the Workflow needs to pick up at. See swithcboard.Context.
     '''
     global WORKFLOW
+    if WORKFLOW:
+        log.bind(
+            component="workflow_service", 
+            workflow_name=name,
+            context=context
+        ).debug("-- WORKFLOW singleton already exists! --")
     WORKFLOW = Workflow(cloud, name, db, context)
     log.bind(
         component="workflow_service", 
         workflow_name=name,
         context=context
     ).info("-- Workflow initialized. --")
+    print("!!!!!!! - workflow: ", WORKFLOW)
 
 @wf_interface
 def ClearWorkflow(cloud, name, db, context):
