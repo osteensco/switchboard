@@ -319,7 +319,7 @@ class Workflow:
 
     def _is_waiting(self) -> bool:
         waiting = True
-        if self.context.executed and self.context.completed and self.context.success:
+        if self.context.completed:
             waiting = False
 
         log.bind(

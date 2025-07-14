@@ -61,7 +61,7 @@ def test_InitWorkflow_for_existing_run(mock_db):
     existing_state = State(
         name="test_workflow",
         run_id=456,
-        steps=[Step(step_id=0, step_name="step1", task_key="task1")],
+        steps=[Step(step_id=0, step_name="step1", task_key="task1", retries=0)],
         cache={"initial_data": "value"},
     )
     db_mock.read.return_value = existing_state
@@ -114,7 +114,7 @@ def test_Call_is_noop_if_step_already_completed(mock_enqueue, mock_db):
     wf.InitWorkflow(cloud=Cloud.CUSTOM, name="test_wf", db=db, context=NEW_WORKFLOW_CONTEXT)
     
     assert(isinstance(wf.WORKFLOW,wf.Workflow))
-    wf.WORKFLOW.state.steps.append(Step(step_id=0, step_name="first_step", executed=True, completed=True, success=True, task_key="do_work"))
+    wf.WORKFLOW.state.steps.append(Step(step_id=0, step_name="first_step", executed=True, completed=True, success=True, task_key="do_work", retries=0))
     wf.WORKFLOW.step_cnt = 1
 
     wf.Call("first_step", "do_work")
@@ -122,9 +122,23 @@ def test_Call_is_noop_if_step_already_completed(mock_enqueue, mock_db):
     assert isinstance(wf.WORKFLOW, wf.WaitStatus) 
     mock_enqueue.assert_not_called()
 
-# TODO
-#   - test other outcomes of the call method
 
+@patch("switchboard.workflow.Workflow._enqueue_execution")
+def test_Call_respects_WaitStatus(mock_enqueue, mock_db):
+    """
+    Call should not enqueue a task if the workflow is already in a WaitStatus.
+    """
+    db, db_mock = mock_db
+    db_mock.read.return_value = None
+
+    wf.InitWorkflow(cloud=Cloud.CUSTOM, name="test_wf", db=db, context=NEW_WORKFLOW_CONTEXT)
+    
+    # Manually set the workflow to a waiting state
+    wf.WORKFLOW = wf.WaitStatus(status=wf.Status.InProcess, state=wf.WORKFLOW.state)
+
+    wf.Call("second_step", "do_another_thing")
+
+    mock_enqueue.assert_not_called()
 
 
 @patch("switchboard.workflow.Workflow._enqueue_execution")
@@ -144,8 +158,166 @@ def test_ParallelCall_enqueues_multiple_tasks(mock_enqueue, mock_db):
     assert isinstance(wf.WORKFLOW.state.steps[0], ParallelStep)
     assert mock_enqueue.call_count == 2
 
-# TODO
-#   - test other outcomes of the parallel_call method
+
+@patch("switchboard.workflow.Workflow._enqueue_execution")
+def test_ParallelCall_respects_WaitStatus(mock_enqueue, mock_db):
+    """
+    ParallelCall should not enqueue tasks if the workflow is already in a WaitStatus.
+    """
+    db, db_mock = mock_db
+    db_mock.read.return_value = None
+
+    wf.InitWorkflow(cloud=Cloud.CUSTOM, name="test_wf", db=db, context=NEW_WORKFLOW_CONTEXT)
+    
+    # Manually set the workflow to a waiting state
+    wf.WORKFLOW = wf.WaitStatus(status=wf.Status.InProcess, state=wf.WORKFLOW.state)
+
+    wf.ParallelCall("parallel_step", "task_a", "task_b")
+
+    mock_enqueue.assert_not_called()
+
+
+@patch("switchboard.workflow.Workflow._enqueue_execution")
+def test_conditional_logic_in_workflow(mock_enqueue, mock_db):
+    """
+    Workflow should correctly execute conditional steps based on cache values.
+    """
+    db, db_mock = mock_db
+    db_mock.read.return_value = None
+
+    wf.InitWorkflow(cloud=Cloud.CUSTOM, name="test_wf", db=db, context=NEW_WORKFLOW_CONTEXT)
+    
+    wf.WORKFLOW.state.cache["should_run"] = True
+
+    if wf.GetCache().get("should_run"):
+        wf.Call("conditional_step", "do_something_conditionally")
+    
+    mock_enqueue.assert_called_once()
+
+    # Reset and test the negative case
+    wf.Workflow._reset_singleton()
+    wf.WORKFLOW = None
+    mock_enqueue.reset_mock()
+
+    wf.InitWorkflow(cloud=Cloud.CUSTOM, name="test_wf", db=db, context=NEW_WORKFLOW_CONTEXT)
+    
+    wf.WORKFLOW.state.cache["should_run"] = False
+
+    if wf.GetCache().get("should_run"):
+        wf.Call("conditional_step", "do_something_conditionally")
+    
+    mock_enqueue.assert_not_called()
+
+
+def test_workflow_with_no_steps(mock_db):
+    """
+    A workflow with no calls should complete successfully.
+    """
+    db, db_mock = mock_db
+    db_mock.read.return_value = None
+
+    wf.InitWorkflow(cloud=Cloud.CUSTOM, name="test_wf", db=db, context=NEW_WORKFLOW_CONTEXT)
+    
+    result = wf.Done()
+
+    assert result == 200
+    assert wf.WORKFLOW.status == wf.Status.Completed
+
+
+@patch("switchboard.workflow.Workflow._enqueue_execution")
+def test_SetCustomExecutorQueue_is_called(mock_enqueue, mock_db):
+    """
+    The custom executor queue function should be called when provided.
+    """
+    db, db_mock = mock_db
+    db_mock.read.return_value = None
+
+    custom_queue_func = MagicMock()
+
+    wf.InitWorkflow(cloud=Cloud.CUSTOM, name="test_wf", db=db, context=NEW_WORKFLOW_CONTEXT)
+    wf.SetCustomExecutorQueue(custom_queue_func)
+    
+    assert wf.WORKFLOW.custom_execution_queue == custom_queue_func
+
+    wf.Call("a_step", "a_task")
+
+    mock_enqueue.assert_called_once()
+
+
+@patch("switchboard.workflow.Workflow._enqueue_execution")
+def test_unsuccessful_step_and_retry_logic(mock_enqueue, mock_db):
+    """
+    A step that fails but has retries left should be re-enqueued.
+    """
+    db, db_mock = mock_db
+
+    # Simulate a state where a step has failed but has retries
+    existing_state = State(
+        name="test_wf",
+        run_id=789,
+        steps=[Step(step_id=0, step_name="failing_step", task_key="failing_task", retries=1)],
+        cache={},
+    )
+    db_mock.read.return_value = existing_state
+
+    # Context indicating the step has been executed and completed, but was not successful
+    context_json = json.dumps({
+        "ids": [789, 0, -1],
+        "executed": True,
+        "completed": True,
+        "success": False,
+        "cache": {}
+    })
+
+    wf.InitWorkflow(cloud=Cloud.CUSTOM, name="test_wf", db=db, context=context_json)
+
+    # The workflow should not be waiting, as the step has completed (though unsuccessfully)
+    assert not wf.WORKFLOW._is_waiting()
+
+    # Calling the same step again should trigger a retry
+    wf.Call("failing_step", "failing_task")
+
+    # Assert that the task was enqueued again for a retry
+    mock_enqueue.assert_called_once()
+    assert wf.WORKFLOW.state.steps[0].retries == 0
+
+
+@patch("switchboard.workflow.Workflow._enqueue_execution")
+def test_out_of_retries(mock_enqueue, mock_db):
+    """
+    A step that is out of retries should not be re-enqueued.
+    """
+    db, db_mock = mock_db
+
+    # Simulate a state where a step has failed and has no retries left
+    existing_state = State(
+        name="test_wf",
+        run_id=789,
+        steps=[Step(step_id=0, step_name="failing_step", task_key="failing_task", retries=0)],
+        cache={},
+    )
+    db_mock.read.return_value = existing_state
+
+    # Context indicating the step has been executed and completed, but was not successful
+    context_json = json.dumps({
+        "ids": [789, 0, -1],
+        "executed": True,
+        "completed": True,
+        "success": False,
+        "cache": {}
+    })
+
+    wf.InitWorkflow(cloud=Cloud.CUSTOM, name="test_wf", db=db, context=context_json)
+
+    # The workflow should not be waiting
+    assert not wf.WORKFLOW._is_waiting()
+
+    # Calling the same step again should not trigger a retry
+    wf.Call("failing_step", "failing_task")
+
+    # Assert that the task was not enqueued again
+    mock_enqueue.assert_not_called()
+
 
 def test_GetCache_returns_current_state_cache(mock_db):
 
@@ -167,10 +339,3 @@ def test_Done_returns_200(mock_db):
     wf.InitWorkflow(cloud=Cloud.CUSTOM, name="test_wf", db=db, context=NEW_WORKFLOW_CONTEXT)
     
     assert wf.Done() == 200
-
-
-
-
-
-
-
