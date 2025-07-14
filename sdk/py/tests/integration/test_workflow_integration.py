@@ -5,7 +5,7 @@ from unittest.mock import MagicMock, patch
 
 from switchboard.enums import Cloud, Status
 from switchboard.response import Response, Trigger
-from switchboard.workflow import ClearWorkflow, GetCache, InitWorkflow, Call, Done, ParallelCall, SetCustomExecutorQueue
+from switchboard.workflow import GetCache, InitWorkflow, Call, Done, ParallelCall, SetCustomExecutorQueue, Workflow
 from switchboard.db import DB, DBInterface
 from switchboard.schemas import State, Context
 from switchboard.executor import switchboard_execute
@@ -61,8 +61,8 @@ def test_endtoend_integration():
         Call("endstep", "endstep")
 
         Done()
-        ClearWorkflow(Cloud.CUSTOM, 'clear', db, context)
-
+        Workflow._reset_singleton()
+        
     def executor_serverless_function(context):
         # The executor service gets its custom push function via the response object in tasks.py
         # We need to ensure tasks.py is configured to push back to the workflow_queue

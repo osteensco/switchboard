@@ -53,12 +53,6 @@ class Workflow:
     def __new__(cls, cloud: Cloud, name: str, db: DB, context: str) -> Self:
         if not cls._instance:
             cls._instance = super().__new__(cls)
-        else:
-            log.bind(
-                component="workflow_service", 
-                workflow_name=name,
-                context=context
-            ).debug("-- WORKFLOW singleton already exists! --")
         return cls._instance
 
     def __init__(self, cloud: Cloud, name: str, db: DB, context: str) -> None:
@@ -242,16 +236,9 @@ class Workflow:
         log.bind(
             component="workflow_service",
             context=self.context,
-            state=self.state
+            state=state
         ).info("-- State retrieved. --")
         return state
-
-
-
-    @classmethod
-    def reset_singleton(cls):
-        cls._instance = None
-        cls._initialized = False
 
 
     def _add_step(self, type: StepType, step_name: str, *tasks):
@@ -287,6 +274,12 @@ class Workflow:
             step_name=step_name,
             context=self.context
         ).info("-- Step added to workflow state. --")
+
+
+    @classmethod
+    def _reset_singleton(cls):
+        cls._instance = None
+        cls._initialized = False
 
 
     def _update_db(self, db: DBInterface):
@@ -606,16 +599,6 @@ def InitWorkflow(cloud: Cloud, name: str, db: DB, context: str):
         context=context
     ).info("-- Workflow initialized. --")
     print("!!!!!!! - workflow: ", WORKFLOW)
-
-@wf_interface
-def ClearWorkflow(cloud, name, db, context):
-    global WORKFLOW
-    if WORKFLOW:
-        WORKFLOW = Workflow(cloud, name, db, context)
-        WORKFLOW._instance = None
-        WORKFLOW._initialized = False
-        WORKFLOW = None
-    print("!!!!!!! -- workflow cleared")
 
 @wf_interface
 def SetCustomExecutorQueue(executor_queue_function: Callable):

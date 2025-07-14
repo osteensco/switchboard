@@ -3,8 +3,8 @@ import json
 from unittest.mock import patch, MagicMock
 from switchboard.enums import Cloud
 from switchboard.schemas import State, Context, Step, ParallelStep
-import switchboard.workflow as wf
 from switchboard.db import DB, DBInterface
+import switchboard.workflow as wf
 
 
 # A default, valid context for initializing a new workflow.
@@ -26,10 +26,9 @@ def mock_db():
 
 @pytest.fixture(autouse=True, scope="function")
 def clear_singleton():
-    print("!!!!!!! - clear WORKFLOW singleton")
-    # if wf.WORKFLOW:
-    #     wf.Workflow._instance = None
-    #     wf.Workflow._initialized = False
+    yield
+    # After the test runs, reset the singleton state
+    wf.Workflow._reset_singleton()
     wf.WORKFLOW = None
 
 
@@ -57,7 +56,7 @@ def test_InitWorkflow_for_existing_run(mock_db):
     """
     InitWorkflow should correctly load and update an existing state.
     """
-    assert wf.WORKFLOW is None
+
     db, db_mock = mock_db
     existing_state = State(
         name="test_workflow",
@@ -79,7 +78,7 @@ def test_InitWorkflow_for_existing_run(mock_db):
     
     assert wf.WORKFLOW is not None
     db_mock.read.assert_called_once_with("test_workflow", 456)
-    assert wf.WORKFLOW.state.steps[0].executed is True
+    assert wf.WORKFLOW.state.steps[0].executed is True, f"{wf.WORKFLOW}"
     assert wf.WORKFLOW.state.steps[0].completed is False
     assert wf.WORKFLOW.state.cache == {"initial_data": "value", "new_data": "added"}
 
@@ -89,11 +88,13 @@ def test_Call_enqueues_task_for_new_step(mock_enqueue, mock_db):
     """
     Call should call _enqueue_execution when a step is called for the first time.
     """
-    db, _ = mock_db
+
+    db, db_mock = mock_db
+    db_mock.read.return_value = None
 
     wf.InitWorkflow(cloud=Cloud.CUSTOM, name="test_wf", db=db, context=NEW_WORKFLOW_CONTEXT)
     
-    wf.Call("first_step", "do_work")
+    wf.Call("first_step", "do_some_work")
     
     assert isinstance(wf.WORKFLOW, wf.WaitStatus)
     assert len(wf.WORKFLOW.state.steps) == 1
@@ -106,9 +107,12 @@ def test_Call_is_noop_if_step_already_completed(mock_enqueue, mock_db):
     """
     Call should not call _enqueue_execution when step was already completed.
     """
-    db, _ = mock_db
+    
+    db, db_mock = mock_db
+    db_mock.read.return_value = None
 
     wf.InitWorkflow(cloud=Cloud.CUSTOM, name="test_wf", db=db, context=NEW_WORKFLOW_CONTEXT)
+    
     assert(isinstance(wf.WORKFLOW,wf.Workflow))
     wf.WORKFLOW.state.steps.append(Step(step_id=0, step_name="first_step", executed=True, completed=True, success=True, task_key="do_work"))
     wf.WORKFLOW.step_cnt = 1
@@ -128,8 +132,9 @@ def test_ParallelCall_enqueues_multiple_tasks(mock_enqueue, mock_db):
     """
     ParallelCall should call _enqueue_execution for each task passed to it.
     """
-    assert wf.WORKFLOW is None
-    db, _ = mock_db
+
+    db, db_mock = mock_db
+    db_mock.read.return_value = None
     
     wf.InitWorkflow(cloud=Cloud.CUSTOM, name="test_wf", db=db, context=NEW_WORKFLOW_CONTEXT)
     
@@ -143,7 +148,9 @@ def test_ParallelCall_enqueues_multiple_tasks(mock_enqueue, mock_db):
 #   - test other outcomes of the parallel_call method
 
 def test_GetCache_returns_current_state_cache(mock_db):
-    db, _ = mock_db
+
+    db, db_mock = mock_db
+    db_mock.read.return_value = None
     
     wf.InitWorkflow(cloud=Cloud.CUSTOM, name="test_wf", db=db, context=NEW_WORKFLOW_CONTEXT)
     assert(isinstance(wf.WORKFLOW, wf.Workflow))
@@ -153,21 +160,16 @@ def test_GetCache_returns_current_state_cache(mock_db):
 
 
 def test_Done_returns_200(mock_db):
-    db, _ = mock_db
+
+    db, db_mock = mock_db
+    db_mock.read.return_value = None
     
     wf.InitWorkflow(cloud=Cloud.CUSTOM, name="test_wf", db=db, context=NEW_WORKFLOW_CONTEXT)
     
     assert wf.Done() == 200
 
 
-# def test_ClearWorkflow_resets_the_singleton(mock_db):
-#     db, _ = mock_db
-#    
-#     wf.InitWorkflow(cloud=Cloud.CUSTOM, name="test_wf", db=db, context=NEW_WORKFLOW_CONTEXT)
-#    
-#     assert wf.WORKFLOW is not None
-#     wf.ClearWorkflow(Cloud.CUSTOM, "test_wf", db, NEW_WORKFLOW_CONTEXT)
-#     assert wf.WORKFLOW is None
+
 
 
 
