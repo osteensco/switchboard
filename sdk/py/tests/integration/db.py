@@ -2,8 +2,7 @@ from switchboard.db import DBInterface
 from switchboard.schemas import State
 
 
-# TODO
-#   - add endpoint discovery method/data structure
+
 class DBMockInterface(DBInterface):
     def __init__(self, state: State | None) -> None:
         self.all_states, self.id_max = self._prepopulate(state)

@@ -10,14 +10,12 @@ from .logging_config import log
 
 
 
-#TODO
-#   add logging and log sink
-#   expand and improve tests (really need some end to end simulations)
+
 
 
 class WaitStatus:
     """
-    The WaitStatus class is a dummy object used to avoid execution of downstream tasks.
+    The WaitStatus class is a dummy object used to avoid execution of downstream tasks during execution of the main switchboard serverless function.
     """
     def __init__(self, status: Status, state: State) -> None:
         self.status = status
@@ -30,8 +28,6 @@ class WaitStatus:
         return self
 
     def done(self) -> int:
-        # TODO
-        #   log status
         return 200
 
 
@@ -125,17 +121,12 @@ class Workflow:
             for k,v in raw_context["cache"].items():
                 cntx.cache[k] = v
 
-        # handle context without task id
-        # task id is only required for a task as part of a ParallelStep
-        # -1 is the default value for task id to help identify that it is not actually in use
-        # TODO this should no longer be possible to only pass in ids of len 2, so this block should be removed
-        if len(cntx.ids) == 2:
-            cntx.ids.append(-1)
-        
+
         log.bind(
             component="workflow_service",
             context=context
         ).info("-- Context retrieved. --")
+        
         return cntx
 
 
@@ -161,9 +152,12 @@ class Workflow:
 
         
         # keys can and should be overwritten in the cache
-        # TODO 
-        #   log when a key is overwritten in the cache
         for k,v in self.context.cache.items():
+            if k in state.cache:
+                log.bind(
+                    state=state,
+                    context=self.context
+                ).debug(f"-- key {k} overwritten in the cache. --")
             state.cache[k] = v
         
         self.step_idx = len(state.steps)-1
@@ -185,7 +179,8 @@ class Workflow:
         if self.context.ids[2] >= 0: # id at index 2 is the task id, which is -1 unless the step is part of a ParallelStep
             assert isinstance(self.curr_step, ParallelStep)
 
-            # we ingest the context from an individual task, but need to analyze it within the context of the whole set of parallel tasks            
+            # we ingest the context from an individual task, but need to analyze it within the context of the whole set of parallel tasks
+            # first we update the status in the task located in the curr_step
             for task in self.curr_step.tasks:
                 if task.task_id == self.context.ids[2]:
                     if self.context.executed:
@@ -196,18 +191,7 @@ class Workflow:
                         task.success = True
                     break
 
-            #     if not executed and not completed and not success:
-            #         continue
-            #
-            #     executed = False if not task.executed else executed
-            #     completed = False if not task.completed else completed
-            #     success = False if not task.success else success
-            #            
-            # # the context referenced by the workflow will need to represent the ParallelStep as a whole
-            # self.curr_step.executed, self.context.executed = executed, executed
-            # self.curr_step.completed, self.context.completed = completed, completed
-            # self.curr_step.success, self.context.success = success, success
-
+            # we then compare against all other tasks and update the curr_step and context appropriately
             executed = []
             completed = []
             success = []
@@ -232,12 +216,12 @@ class Workflow:
             if self.context.success:
                 self.curr_step.success = True
 
-        
         log.bind(
             component="workflow_service",
             context=self.context,
             state=state
         ).info("-- State retrieved. --")
+
         return state
 
 
@@ -372,9 +356,9 @@ class Workflow:
     
     def _enqueue_execution(self, cloud: Cloud, db: DBInterface, name: str, task: str, task_id: int = -1):
         assert self.curr_step, "There should be a curr_step populated for the Workflow object when _enqueue_execution() is called."
+        # the task and the workflow name needs to be added to the context at this point
         # TODO
         #   - 'workflow' should probably just be a field in the Context object
-        # the task and the workflow name needs to be added to the context at this point
 
         # task_id has to be added here in order to handle parallel tasks
         self.context.ids[2] = task_id
@@ -492,8 +476,11 @@ class Workflow:
             
             for task_key in tasks:
                 task_id = None
+
                 # TODO
                 #   - implement a better search algorithm to grab the task_id
+                #       - or redesign this so that the task id is updated in the context
+                #       - or a context object is passed to _enqueue_execution
                 for task in self.curr_step.tasks: 
                     if task.task_key == task_key:
                         task_id = task.task_id
@@ -534,8 +521,7 @@ class Workflow:
                 workflow_name=self.name,
                 run_id=self.state.run_id
             ).info("-- Workflow marked as completed. --")
-        # TODO
-        #   log status
+
         return 200
 
 
