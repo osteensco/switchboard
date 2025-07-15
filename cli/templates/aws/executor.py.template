@@ -1,0 +1,51 @@
+import json
+from switchboard import switchboard_execute, DB, Cloud
+
+# Import the directory_map from your tasks file.
+# This map tells the executor where to find your task functions.
+from tasks import directory_map
+
+
+# This is the entry point for the task executor.
+# The `lambda_handler` is invoked by the cloud provider (e.g., AWS Lambda)
+# with a payload from the executor queue.
+def lambda_handler(event, context):
+    """
+    Handles the execution of a single task.
+
+    This function parses the Switchboard context from the incoming event,
+    initializes a database connection, and then calls the main
+    `switchboard_execute` function to run the appropriate task from the
+    `directory_map`.
+
+    It's designed to handle one task at a time. Ensure your queue's
+    batch size is set to 1.
+    """
+    # Ensure the function is configured to process one record at a time.
+    if len(event.get('Records', [])) != 1:
+        raise ValueError(
+            f"Executor expects a batch size of 1, but received "
+            f"{len(event.get('Records', []))} records."
+        )
+
+    # The event from the executor queue (e.g., SQS) contains the
+    # Switchboard context in the message body.
+    sb_context = json.loads(event['Records'][0]['body'])
+
+    # Initialize the database connection.
+    db = DB(Cloud.AWS)
+
+    # Execute the task using the core Switchboard executor logic.
+    # This function looks up the task in the `directory_map` and runs it,
+    # handling state updates and responses automatically.
+    status = switchboard_execute(
+        cloud=Cloud.AWS,
+        db=db.interface,
+        context=sb_context,
+        directory_map=directory_map
+    )
+
+    return {
+        'statusCode': status,
+        'body': json.dumps(f"Task execution completed with status: {status}")
+    }

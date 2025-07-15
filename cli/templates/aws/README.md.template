@@ -1,0 +1,19 @@
+# {{ project_name }}
+
+This is a Switchboard project scaffolded by the `switchboard-cli`.
+
+## Quick Start
+
+1.  **Define Your Tasks**
+    -   Open `src/tasks.py` and add your business logic.
+
+2.  **Define Your Workflow**
+    -   Open `src/switchboard.py` to orchestrate your tasks.
+
+3.  **Package Your Code**
+    -   Run `switchboard package` to create the Lambda deployment zip.
+
+4.  **Deploy Your Infrastructure**
+    -   Run `switchboard deploy`.
+
+For more detailed information and advanced usage, please visit the official Switchboard documentation site.

@@ -1,0 +1,16 @@
+# Environments
+.env
+.venv
+venv/
+env/
+
+# Python cache
+__pycache__/
+.pytest_cache/
+
+# Switchboard specific
+lambda_package.zip
+
+# Terraform state
+.terraform/
+.terraform.lock.hcl
