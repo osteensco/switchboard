@@ -33,7 +33,7 @@ Before deploying this demo, ensure you have the following installed and configur
 
 1.  **Navigate to the Terraform directory:**
     ```bash
-    cd examples/basic-aws-demo/terraform
+    cd examples/aws-demo/terraform
     ```
 
 2.  **Initialize Terraform:**
@@ -66,7 +66,7 @@ To destroy all the resources created by this demo (to avoid incurring AWS costs)
 
 1.  **Navigate to the Terraform directory:**
     ```bash
-    cd examples/basic-aws-demo/terraform
+    cd examples/aws-demo/terraform
     ```
 
 2.  **Destroy the resources:**

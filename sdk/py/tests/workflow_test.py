@@ -201,6 +201,7 @@ def test_conditional_logic_in_workflow(mock_enqueue, mock_db):
 
     wf.InitWorkflow(cloud=Cloud.CUSTOM, name="test_wf", db=db, context=NEW_WORKFLOW_CONTEXT)
     
+    assert isinstance(wf.WORKFLOW, wf.Workflow)
     wf.WORKFLOW.state.cache["should_run"] = False
 
     if wf.GetCache().get("should_run"):
@@ -237,6 +238,7 @@ def test_SetCustomExecutorQueue_is_called(mock_enqueue, mock_db):
     wf.InitWorkflow(cloud=Cloud.CUSTOM, name="test_wf", db=db, context=NEW_WORKFLOW_CONTEXT)
     wf.SetCustomExecutorQueue(custom_queue_func)
     
+    assert isinstance(wf.WORKFLOW, wf.Workflow)
     assert wf.WORKFLOW.custom_execution_queue == custom_queue_func
 
     wf.Call("a_step", "a_task")
@@ -247,7 +249,7 @@ def test_SetCustomExecutorQueue_is_called(mock_enqueue, mock_db):
 @patch("switchboard.workflow.Workflow._enqueue_execution")
 def test_unsuccessful_step_and_retry_logic(mock_enqueue, mock_db):
     """
-    A step that fails but has retries left should be re-enqueued.
+    A step that fails but has retries left should be re-enqueued and retries field decremented.
     """
     db, db_mock = mock_db
 
@@ -272,6 +274,7 @@ def test_unsuccessful_step_and_retry_logic(mock_enqueue, mock_db):
     wf.InitWorkflow(cloud=Cloud.CUSTOM, name="test_wf", db=db, context=context_json)
 
     # The workflow should not be waiting, as the step has completed (though unsuccessfully)
+    assert isinstance(wf.WORKFLOW, wf.Workflow)
     assert not wf.WORKFLOW._is_waiting()
 
     # Calling the same step again should trigger a retry
@@ -279,6 +282,7 @@ def test_unsuccessful_step_and_retry_logic(mock_enqueue, mock_db):
 
     # Assert that the task was enqueued again for a retry
     mock_enqueue.assert_called_once()
+    assert isinstance(wf.WORKFLOW.state.steps[0], Step) # retries in ParallelSteps are handled for each individual task so this field only exists in a Step object
     assert wf.WORKFLOW.state.steps[0].retries == 0
 
 
@@ -310,6 +314,7 @@ def test_out_of_retries(mock_enqueue, mock_db):
     wf.InitWorkflow(cloud=Cloud.CUSTOM, name="test_wf", db=db, context=context_json)
 
     # The workflow should not be waiting
+    assert isinstance(wf.WORKFLOW, wf.Workflow)
     assert not wf.WORKFLOW._is_waiting()
 
     # Calling the same step again should not trigger a retry
