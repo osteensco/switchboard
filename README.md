@@ -1,15 +1,5 @@
-<div align="center">
-    
-```
-◌  ◌  ● 
-◌  ●  ◌ 
-◌  ●  ◌ 
-●  ◌  ◌ 
-
-s w i t c h b o a r d
-
-```
-
+<div  align=center>
+<img width="181" height="159" alt="image" src="https://github.com/user-attachments/assets/ffc35ecd-959e-4cf1-a226-6725d13b7376" />
 </div>
 
 
