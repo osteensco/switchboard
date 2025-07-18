@@ -1,9 +1,9 @@
 resource "aws_lambda_function" "workflow_lambda" {
   function_name = "${var.project_name}-workflow-${var.environment}"
   role          = var.iam_role_arn
-  handler       = "switchboard.workflow.workflow_handler"
+  handler       = "src.switchboard.workflow_handler"
   runtime       = "python3.9"
-  filename      = "lambda_package.zip"
+  filename      = "../lambda_package.zip"
 
   environment {
     variables = {
@@ -12,15 +12,15 @@ resource "aws_lambda_function" "workflow_lambda" {
     }
   }
 
-  source_code_hash = filebase64sha256("lambda_package.zip")
+  source_code_hash = filebase64sha256("../lambda_package.zip")
 }
 
 resource "aws_lambda_function" "executor_lambda" {
   function_name = "${var.project_name}-executor-${var.environment}"
   role          = var.iam_role_arn
-  handler       = "switchboard.executor.lambda_handler"
+  handler       = "src.executor.lambda_handler"
   runtime       = "python3.9"
-  filename      = "lambda_package.zip"
+  filename      = "../lambda_package.zip"
 
   environment {
     variables = {
@@ -28,7 +28,7 @@ resource "aws_lambda_function" "executor_lambda" {
     }
   }
 
-  source_code_hash = filebase64sha256("lambda_package.zip")
+  source_code_hash = filebase64sha256("../lambda_package.zip")
 }
 
 resource "aws_lambda_event_source_mapping" "invocation_queue_mapping" {

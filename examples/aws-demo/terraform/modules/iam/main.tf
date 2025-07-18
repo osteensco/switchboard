@@ -1,3 +1,6 @@
+data "aws_region" "current" {}
+data "aws_caller_identity" "current" {}
+
 resource "aws_iam_role" "lambda_role" {
   name = "${var.project_name}-demo-role-${var.environment}"
 

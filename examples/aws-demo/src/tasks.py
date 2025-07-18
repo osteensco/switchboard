@@ -1,0 +1,13 @@
+from switchboard.schemas import Task
+
+# This is a sample task. You can define your own tasks in this file.
+def sample_task():
+    print("This is a sample task.")
+    return 200
+
+# The directory_map maps task names to Task objects.
+# The executor will use this map to find and execute your tasks.
+directory_map = {
+    "sample_task": Task(name="sample_task", execute=sample_task),
+}
+

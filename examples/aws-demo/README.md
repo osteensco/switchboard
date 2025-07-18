@@ -28,37 +28,36 @@ Before deploying this demo, ensure you have the following installed and configur
     *   Download from [https://www.terraform.io/downloads](https://www.terraform.io/downloads).
     *   Ensure the `terraform` executable is in your system's PATH.
 4.  **Python 3.9+:** Required for the Lambda function code.
+5.  **Pip:** The Python package installer.
 
 ## Deployment Steps
 
-1.  **Navigate to the Terraform directory:**
+1.  **Navigate to the example directory:**
     ```bash
-    cd examples/aws-demo/terraform
+    cd examples/aws-demo
     ```
 
-2.  **Initialize Terraform:**
-    This command downloads the necessary AWS provider plugin.
+2.  **Run the deployment script:**
+    This script will package the Python code and deploy the AWS resources using Terraform.
     ```bash
-    terraform init
-    ```
-
-3.  **Review the plan (Optional but Recommended):**
-    This command shows you what Terraform will create, modify, or destroy.
-    ```bash
-    terraform plan
-    ```
-
-4.  **Apply the Terraform configuration:**
-    This command will provision the AWS resources. Type `yes` when prompted to confirm.
-    ```bash
-    terraform apply
+    ./deploy.sh
     ```
 
 ## Running the Demo Workflow
 
-Once deployed, you can trigger the sample workflow. The `tasks.py` file defines a simple `hello_world_task`.
+Once deployed, you can trigger and monitor the sample workflow using the `trigger_workflow.py` script.
 
-*(Instructions for triggering the workflow will be added here once the CLI or a direct invocation method is available.)*
+1.  **Install dependencies:**
+    ```bash
+    pip install -r ../../sdk/py/requirements.txt
+    ```
+
+2.  **Run the trigger script:**
+    ```bash
+    python trigger_workflow.py
+    ```
+
+This will start the workflow and print real-time status updates to your console.
 
 ## Cleanup
 
