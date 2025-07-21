@@ -123,11 +123,12 @@ class AWS_DataInterface(DBInterface):
 
     def write(self,state):
         tbl = self.get_table()
+        state_dict = state.to_dict()
         try:
             response = tbl.update_item(
-                Key={"name": state.name, "run_id": state.run_id},
+                Key={"name": state_dict["name"], "run_id": state_dict["run_id"]},
                 UpdateExpression="set steps=:steps, cache=:cache",
-                ExpressionAttributeValues={":steps": state.steps, ":cache": state.cache},
+                ExpressionAttributeValues={":steps": state_dict["steps"], ":cache": state_dict["cache"]},
             )
         except ClientError as err:
            raise Exception(
@@ -144,6 +145,8 @@ class AWS_DataInterface(DBInterface):
 
     def increment_id(self,name):
         tbl = self.get_table()
+        print(f"DEBUG: Type of name: {type(name)}, value: {name}")
+        print(f"DEBUG: Type of table name: {type(tbl.table_name)}, value: {tbl.table_name}")
         response = tbl.query(
             KeyConditionExpression=Key('name').eq(name),
             ScanIndexForward=False,  
@@ -158,7 +161,7 @@ class AWS_DataInterface(DBInterface):
     def get_endpoint(self, name, component) -> str:
         tbl = self.get_table(TableName.SwitchboardResources)
         try:
-            ep = tbl.get_item(Key={"component": component, "name": name})
+            ep = tbl.get_item(Key={"component": component.value, "name": name})
         except ClientError as err:
             raise Exception(
                 "%s - Couldn't get endpoint for %s from table %s. %s: %s",
@@ -172,7 +175,7 @@ class AWS_DataInterface(DBInterface):
 
 
     def get_table(self,table=TableName.SwitchboardState):
-        tbl = self.conn.Table(table)
+        tbl = self.conn.Table(table.value)
         return tbl
 
 

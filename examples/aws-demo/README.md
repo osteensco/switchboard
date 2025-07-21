@@ -1,75 +1,161 @@
-# Basic AWS Demo for Switchboard
+# AWS Demo
 
-This directory contains a basic demonstration of the Switchboard framework deployed on AWS using Terraform.
-
-## Overview
-
-This demo sets up the core AWS infrastructure required for a Switchboard workflow:
-
-*   **IAM Role:** A dedicated IAM role with the necessary permissions for Lambda functions to interact with DynamoDB and SQS.
-*   **DynamoDB Tables:**
-    *   `SwitchboardState`: Stores the state of ongoing and completed workflows.
-    *   `SwitchboardResources`: Stores metadata about Switchboard components (like queue URLs).
-*   **SQS Queues:**
-    *   `Invocation Queue`: Used to trigger new workflows and receive responses from tasks.
-    *   `Executor Queue`: Used to send tasks to the executor Lambda.
-*   **Lambda Functions:**
-    *   `Workflow Lambda`: Orchestrates the workflow logic.
-    *   `Executor Lambda`: Executes individual tasks defined in `tasks.py`.
+This is a demo of Switchboard running on AWS.
 
 ## Prerequisites
 
-Before deploying this demo, ensure you have the following installed and configured:
+- Python 3.11+
+- Terraform
+- An AWS account with credentials configured
 
-1.  **AWS Account:** You need an active AWS account.
-2.  **AWS CLI:** Configured with credentials that have permissions to create IAM roles, DynamoDB tables, SQS queues, and Lambda functions.
-    *   You can configure your AWS CLI by running `aws configure`.
-3.  **Terraform:** Install Terraform CLI (version 1.0+ recommended).
-    *   Download from [https://www.terraform.io/downloads](https://www.terraform.io/downloads).
-    *   Ensure the `terraform` executable is in your system's PATH.
-4.  **Python 3.9+:** Required for the Lambda function code.
-5.  **Pip:** The Python package installer.
+## Setup for Administrators
 
-## Deployment Steps
+Before a developer can deploy the demo, an administrator must create an IAM role with the necessary permissions.
 
-1.  **Navigate to the example directory:**
+1.  **Create the IAM Policy:**
+
+    Create an IAM policy using the contents of the `iam_policy.json` file in this directory. You can do this through the AWS Management Console or with the AWS CLI:
+
     ```bash
-    cd examples/aws-demo
+    aws iam create-policy --policy-name switchboard-demo-policy --policy-document file://iam_policy.json
     ```
 
-2.  **Run the deployment script:**
-    This script will package the Python code and deploy the AWS resources using Terraform.
+2.  **Create the IAM Role:**
+
+    Create an IAM role that the Lambda functions will assume. This role must have a trust relationship with the Lambda service.
+
     ```bash
-    ./deploy.sh
+    aws iam create-role --role-name switchboard-demo-role --assume-role-policy-document '{
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Effect": "Allow",
+                "Principal": {
+                    "Service": "lambda.amazonaws.com"
+                },
+                "Action": "sts:AssumeRole"
+            }
+        ]
+    }'
     ```
 
-## Running the Demo Workflow
+3.  **Attach the Policy to the Role:**
 
-Once deployed, you can trigger and monitor the sample workflow using the `trigger_workflow.py` script.
+    Attach the policy you created to the new role.
 
-1.  **Install dependencies:**
     ```bash
-    pip install -r ../../sdk/py/requirements.txt
+    aws iam attach-role-policy --role-name switchboard-demo-role --policy-arn <your-policy-arn>
     ```
 
-2.  **Run the trigger script:**
+    Replace `<your-policy-arn>` with the ARN of the policy you created in the first step.
+
+4.  **Provide the Role ARN to the Developer:**
+
+    The developer will need the ARN of the role you just created to deploy the demo. You can get the ARN with the following command:
+
     ```bash
-    python trigger_workflow.py
+    aws iam get-role --role-name switchboard-demo-role --query 'Role.Arn' --output text
     ```
 
-This will start the workflow and print real-time status updates to your console.
+## Deployment for Developers
 
-## Cleanup
+Before you can deploy the demo, you need to configure your AWS credentials.
 
-To destroy all the resources created by this demo (to avoid incurring AWS costs):
+1.  **Configure AWS CLI:**
 
-1.  **Navigate to the Terraform directory:**
+    If you haven't already, configure the AWS CLI with your credentials. You will need an access key and secret key from your administrator.
+
     ```bash
-    cd examples/aws-demo/terraform
+    aws configure
     ```
 
-2.  **Destroy the resources:**
-    This command will remove all resources provisioned by this Terraform configuration. Type `yes` when prompted to confirm.
+    Your administrator should grant you permissions to manage Lambda, SQS, and DynamoDB resources. The specific permissions required are listed in the "Developer IAM Policy" section below.
+
+## Developer IAM Policy
+
+An administrator must attach a policy with the following permissions to your IAM user or role. This policy grants the minimum permissions required to deploy and manage the demo resources using Terraform.
+
+```json
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "ManageLambdaAndEventSources",
+            "Effect": "Allow",
+            "Action": [
+                "lambda:CreateFunction",
+                "lambda:DeleteFunction",
+                "lambda:GetFunction",
+                "lambda:UpdateFunctionCode",
+                "lambda:UpdateFunctionConfiguration",
+                "lambda:CreateEventSourceMapping",
+                "lambda:DeleteEventSourceMapping",
+                "lambda:GetEventSourceMapping",
+                "lambda:UpdateEventSourceMapping",
+                "lambda:TagResource"
+            ],
+            "Resource": "arn:aws:lambda:*:<aws-account-id>:function:switchboard-demo-*"
+        },
+        {
+            "Sid": "ManageSQS",
+            "Effect": "Allow",
+            "Action": [
+                "sqs:CreateQueue",
+                "sqs:DeleteQueue",
+                "sqs:GetQueueAttributes",
+                "sqs:SetQueueAttributes",
+                "sqs:TagQueue"
+            ],
+            "Resource": "arn:aws:sqs:*:<aws-account-id>:switchboard-demo-*"
+        },
+        {
+            "Sid": "ManageDynamoDB",
+            "Effect": "Allow",
+            "Action": [
+                "dynamodb:CreateTable",
+                "dynamodb:DeleteTable",
+                "dynamodb:DescribeTable",
+                "dynamodb:TagResource"
+            ],
+            "Resource": "arn:aws:dynamodb:*:<aws-account-id>:table/switchboard-demo-state"
+        },
+        {
+            "Sid": "PassRoleForLambda",
+            "Effect": "Allow",
+            "Action": "iam:PassRole",
+            "Resource": "arn:aws:iam::<aws-account-id>:role/switchboard-demo-role"
+        }
+    ]
+}
+```
+
+2.  **Install local dependencies:**
+    
+    This installs the necessary Python dependencies for the `trigger_workflow.py` script to work.
+
     ```bash
-    terraform destroy
+    pip install -r requirements.txt
     ```
+
+3.  **Package the Lambda function:**
+
+    ```bash
+    cd ..
+    bash ./deploy.sh
+    ```
+
+4.  **Deploy the infrastructure:**
+
+    You will be prompted to enter the IAM role ARN provided by your administrator.
+
+    ```bash
+    cd terraform && terraform init && terraform validate && terraform apply && cd ..
+    ```
+
+## Usage
+
+You can trigger the workflow by running the `trigger_workflow.py` script:
+
+```bash
+python trigger_workflow.py
+```

@@ -1,9 +1,4 @@
-variable "project_name" {
-  description = "The name of the project."
-  type        = string
-}
-
-variable "environment" {
-  description = "The environment to deploy to."
+variable "iam_role_arn" {
+  description = "The ARN of the IAM role to be used by the Lambda functions."
   type        = string
 }

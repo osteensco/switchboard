@@ -28,6 +28,7 @@ class WaitStatus:
         return self
 
     def done(self) -> int:
+        print("!!!!!!!!! WaitStatus done called")
         return 200
 
 
@@ -441,6 +442,9 @@ class Workflow:
             return self._next(step_name, task)
 
         # when we determine the step doesn't need to be executed then the db just needs to be updated
+        print(f"DEBUG: Before _update_db in call() - type(self.state.steps): {type(self.state.steps)}")
+        if self.state.steps:
+            print(f"DEBUG: Before _update_db in call() - type(self.state.steps[0]): {type(self.state.steps[0])}")
         self._update_db(self.db)
 
         log.bind(
@@ -493,6 +497,9 @@ class Workflow:
         
         # we don't need to update the db until after a successful execution
         # when we determine the step doesn't need to be executed then the db just needs to be updated
+        print(f"DEBUG: Before _update_db in parallel_call() - type(self.state.steps): {type(self.state.steps)}")
+        if self.state.steps:
+            print(f"DEBUG: Before _update_db in parallel_call() - type(self.state.steps[0]): {type(self.state.steps[0])}")
         self._update_db(self.db)
 
         log.bind(

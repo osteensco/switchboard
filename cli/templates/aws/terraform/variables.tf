@@ -1,3 +1,8 @@
+variable "iam_role_arn" {
+  description = "The ARN of the pre-existing IAM role for the Lambda functions."
+  type        = string
+}
+
 variable "aws_region" {
   description = "The AWS region to deploy the resources to."
   type        = string

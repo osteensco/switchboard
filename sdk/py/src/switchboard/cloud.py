@@ -14,7 +14,7 @@ def AWS_db_connect():
     Returns a dynamodb service resource - https://boto3.amazonaws.com/v1/documentation/api/latest/guide/resources.html#guide-resources
 
     '''
-    return boto3.resource('dynamodb')
+    return boto3.resource('dynamodb', region_name='us-east-1')
 
 
 def GCP_db_connect():

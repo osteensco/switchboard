@@ -1,9 +1,10 @@
 resource "aws_lambda_function" "workflow_lambda" {
   function_name = "${var.project_name}-workflow-${var.environment}"
   role          = var.iam_role_arn
-  handler       = "src.switchboard.workflow_handler"
-  runtime       = "python3.9"
+  handler       = "src.workflow.workflow_handler"
+  runtime       = "python3.11"
   filename      = "../lambda_package.zip"
+  timeout       = 30
 
   environment {
     variables = {
@@ -19,8 +20,9 @@ resource "aws_lambda_function" "executor_lambda" {
   function_name = "${var.project_name}-executor-${var.environment}"
   role          = var.iam_role_arn
   handler       = "src.executor.lambda_handler"
-  runtime       = "python3.9"
+  runtime       = "python3.11"
   filename      = "../lambda_package.zip"
+  timeout       = 30
 
   environment {
     variables = {
@@ -39,4 +41,6 @@ resource "aws_lambda_event_source_mapping" "invocation_queue_mapping" {
 resource "aws_lambda_event_source_mapping" "executor_queue_mapping" {
   event_source_arn = var.executor_queue_arn
   function_name    = aws_lambda_function.executor_lambda.arn
+  batch_size       = 1
+  enabled          = true
 }

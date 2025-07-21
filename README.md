@@ -38,7 +38,7 @@ A typical workflow execution looks like this:
 
 ## Getting Started (Python Example)
 
-Here’s a conceptual look at how you would define a workflow with the Python SDK.
+Here’s a conceptual look at how you would define a workflow with the Python SDK (requires Python3.11+).
 
 ### 1. Define your tasks
 

@@ -1,4 +1,4 @@
-output "lambda_role_arn" {
+output "iam_role_arn" {
   description = "The ARN of the IAM role for the Lambda functions."
-  value       = aws_iam_role.lambda_role.arn
+  value       = var.iam_role_arn
 }

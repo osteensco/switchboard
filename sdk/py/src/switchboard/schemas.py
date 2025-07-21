@@ -29,6 +29,9 @@ class Step:
     task_id: int = -1 # -1 unless step is part of a tasks list in a parallel step
     retries: int = 0
 
+    def to_dict(self):
+        return self.__dict__
+
 
 @dataclass
 class ParallelStep:
@@ -39,6 +42,11 @@ class ParallelStep:
     completed: bool = False
     success: bool = False
 
+    def to_dict(self):
+        tasks = [task.to_dict() for task in self.tasks]
+        d = self.__dict__
+        d["tasks"] = tasks
+        return d
 
 @dataclass
 class State:
@@ -47,8 +55,22 @@ class State:
     steps: list[Step|ParallelStep]
     cache: dict # cache can be used to store data that is pertinent to conditional steps in a workflow.
 
-def NewState(dict) -> State:
-    return State(dict["name"], dict["run_id"], dict["steps"], dict["cache"])
+    def to_dict(self):
+        steps = [step.to_dict() for step in self.steps]
+        d = self.__dict__
+        d["steps"] = steps
+        return d
+
+
+def NewState(data: dict) -> State:
+    deserialized_steps = []
+    for step_data in data["steps"]:
+        if "tasks" in step_data: # It's a ParallelStep
+            deserialized_tasks = [Step(**task_data) for task_data in step_data["tasks"]]
+            deserialized_steps.append(ParallelStep(**{**step_data, "tasks": deserialized_tasks}))
+        else: # It's a Step
+            deserialized_steps.append(Step(**step_data))
+    return State(data["name"], int(data["run_id"]), deserialized_steps, data["cache"])
 
 
 
@@ -79,13 +101,10 @@ class Context:
     cache: dict # cache is used to add variables to the State cache which can be defined in the switchboard response object body.
 
     def to_dict(self):
-        return {
-                "ids": self.ids,
-                "executed": self.executed,
-                "completed": self.completed,
-                "success": self.success,
-                "cache": self.cache,
-                }
+        d = self.__dict__
+        d["ids"] = [int(i) for i in d["ids"]]
+        return d
+
 
 def ContextFromDict(context: dict) -> Context:
     '''

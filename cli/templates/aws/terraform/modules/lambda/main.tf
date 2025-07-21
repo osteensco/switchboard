@@ -1,8 +1,8 @@
 resource "aws_lambda_function" "workflow_lambda" {
   function_name = "${var.project_name}-workflow-${var.environment}"
   role          = var.iam_role_arn
-  handler       = "switchboard.workflow.workflow_handler"
-  runtime       = "python3.9"
+  handler       = "src.workflow.workflow_handler"
+  runtime       = "python3.11"
   filename      = "lambda_package.zip"
 
   environment {
@@ -18,8 +18,8 @@ resource "aws_lambda_function" "workflow_lambda" {
 resource "aws_lambda_function" "executor_lambda" {
   function_name = "${var.project_name}-executor-${var.environment}"
   role          = var.iam_role_arn
-  handler       = "switchboard.executor.lambda_handler"
-  runtime       = "python3.9"
+  handler       = "src.executor.lambda_handler"
+  runtime       = "python3.11"
   filename      = "lambda_package.zip"
 
   environment {
