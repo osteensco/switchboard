@@ -1,5 +1,4 @@
-import json
-from switchboard import InitWorkflow, Call, ParallelCall, Done, DB, Cloud, GetCache
+from switchboard import InitWorkflow, Call, Done, DB, Cloud, GetCache
 
 # This is the entry point for your workflow orchestration.
 # The `workflow_handler` is invoked by the cloud provider (e.g., AWS Lambda)
@@ -29,7 +28,7 @@ def workflow_handler(event, context):
     # This loads the state for the current run or creates a new one.
     InitWorkflow(
         cloud=Cloud.AWS,
-        name="my_workflow",  # <-- TODO: Rename your workflow
+        name="myworkflow",
         db=db,
         context=sb_context
     )

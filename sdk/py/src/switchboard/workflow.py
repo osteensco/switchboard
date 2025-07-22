@@ -268,6 +268,13 @@ class Workflow:
 
 
     def _update_db(self, db: DBInterface):
+        assert self.curr_step is not None
+        log.bind(
+            component="workflow_service",
+            workflow_name=self.name,
+            context=self.context,
+            state=self.state
+        ).info("-- State written to database. --")
         db.write(self.state)
 
     
@@ -370,7 +377,8 @@ class Workflow:
             run_id=self.state.run_id,
             step_name=self.curr_step.step_name,
             context=self.context,
-            task_key=task
+            task_key=task,
+            message=msg_body
         ).info("-- Enqueuing task for execution. --")
         
         resp = push_to_executor(cloud, db, name, msg_body, self.custom_execution_queue)
@@ -528,6 +536,8 @@ class Workflow:
                 workflow_name=self.name,
                 run_id=self.state.run_id
             ).info("-- Workflow marked as completed. --")
+        # Database needs to be updated one last time
+        self._update_db(self.db)
 
         return 200
 
@@ -638,7 +648,9 @@ def Done() -> int:
     Calling Done() signifies the end of a switchboard workflow. This function will return the status code of the workflows execution.
     '''
     assert WORKFLOW is not None
-    return WORKFLOW.done()
+    status = WORKFLOW.done()
+    Workflow._reset_singleton()
+    return status
 
 
 

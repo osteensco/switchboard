@@ -69,8 +69,8 @@ def monitor_workflow(state_table_name, workflow_name):
             )
             item = response.get("Item")
             if item:
-                print(f"  Status: {item.get('status')}, Current Step: {item.get('current_step')}")
-                if item.get('status') == 'COMPLETED' or item.get('status') == 'FAILED':
+                print(f"  Steps: {item.get('steps')}, Cache: {item.get('cache')}")
+                if item.get('steps')[0]["success"]:
                     print("--- Workflow Finished ---")
                     break
             else:
@@ -88,4 +88,7 @@ if __name__ == "__main__":
     state_table_name = outputs["state_table_name"]["value"]
     
     trigger_workflow(invocation_queue_url)
-    monitor_workflow(state_table_name, "my_workflow") # Pass workflow_name to monitor
+    monitor_workflow(state_table_name, "myworkflow") # Pass workflow_name to monitor
+
+
+

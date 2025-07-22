@@ -34,6 +34,7 @@ def AWS_message_push(endpoint: str, msg: str) -> dict:
             MessageBody=msg
         )
     except Exception as e:
+        print(f"!!!!!! Error pushing message to sqs: {e}")
         raise e
     finally:
         return response

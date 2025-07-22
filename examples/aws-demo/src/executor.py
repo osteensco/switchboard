@@ -3,7 +3,7 @@ from switchboard import switchboard_execute, DB, Cloud
 
 # Import the directory_map from your tasks file.
 # This map tells the executor where to find your task functions.
-from tasks import directory_map
+from src.tasks import directory_map
 
 
 # This is the entry point for the task executor.

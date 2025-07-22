@@ -1,0 +1,37 @@
+{
+  "executor_lambda_name": {
+    "sensitive": false,
+    "type": "string",
+    "value": "switchboard-executor-dev"
+  },
+  "executor_queue_url": {
+    "sensitive": false,
+    "type": "string",
+    "value": "https://sqs.us-east-1.amazonaws.com/728902303275/switchboard-executor-queue-dev"
+  },
+  "invocation_queue_url": {
+    "sensitive": false,
+    "type": "string",
+    "value": "https://sqs.us-east-1.amazonaws.com/728902303275/switchboard-invocation-queue-dev"
+  },
+  "resources_table_name": {
+    "sensitive": false,
+    "type": "string",
+    "value": "SwitchboardResources"
+  },
+  "state_table_name": {
+    "sensitive": false,
+    "type": "string",
+    "value": "SwitchboardState"
+  },
+  "workflow_lambda_name": {
+    "sensitive": false,
+    "type": "string",
+    "value": "switchboard-workflow-dev"
+  },
+  "workflow_name": {
+    "sensitive": false,
+    "type": "string",
+    "value": "myworkflow"
+  }
+}

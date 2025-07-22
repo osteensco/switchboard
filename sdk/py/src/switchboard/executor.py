@@ -18,6 +18,7 @@ from .logging_config import log
 def push_to_executor(cloud: Cloud, db: DBInterface, name: str, body: str, custom_execution_queue: Callable | None = None) -> dict:
 
     ep = db.get_endpoint(name, SwitchboardComponent.ExecutorQueue)
+    print(f"!!!!!! Executor endpoint: '{ep}'")
 
     response = Invoke(cloud, ep, body, custom_execution_queue)
     return response
@@ -47,6 +48,11 @@ def switchboard_execute(
         directory_map: dict[str, Task],
         custom_invocation_queue: Callable | None = None
 ) -> int:
+    '''
+    Switchboard's execution function for use by the executor.
+    '''
+
+
 # Potential task categories that the executor should handle
 #   [ ] http endpoint
 #   [ ] compute (via sdk)
@@ -92,10 +98,11 @@ def switchboard_execute(
         # the raw context as an argument and return a valid status code
         cntxt = ContextFromDict(context)
         cntxt.executed = True
-        executor_response = Response(cloud, db, context['workflow'], cntxt, custom_queue_push=custom_invocation_queue)
-        # executor_response.add_body()
-        executor_response.send()
 
+        executor_response = Response(cloud, db, context['workflow'], cntxt, custom_queue_push=custom_invocation_queue)
+        executor_response.send()
+        
+        # tasks take a Context object as an argument
         task_response = task.execute(cntxt)
         return task_response
     else:

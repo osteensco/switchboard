@@ -137,11 +137,10 @@ An administrator must attach a policy with the following permissions to your IAM
     pip install -r requirements.txt
     ```
 
-3.  **Package the Lambda function:**
+3.  **Package the Lambda functions:**
 
     ```bash
-    cd ..
-    bash ./deploy.sh
+    bash ./package.sh
     ```
 
 4.  **Deploy the infrastructure:**
@@ -149,7 +148,13 @@ An administrator must attach a policy with the following permissions to your IAM
     You will be prompted to enter the IAM role ARN provided by your administrator.
 
     ```bash
-    cd terraform && terraform init && terraform validate && terraform apply && cd ..
+    cd terraform && terraform init && terraform validate && terraform apply && terraform output -json > output.json && cd ..
+    ```
+
+5.  **Populate the resources database:**
+
+    ```bash
+    python register_resources.py
     ```
 
 ## Usage

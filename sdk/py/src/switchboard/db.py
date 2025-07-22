@@ -159,19 +159,34 @@ class AWS_DataInterface(DBInterface):
 
 
     def get_endpoint(self, name, component) -> str:
+        '''
+        Args ->
+
+            name: The name of the workflow.
+            component: One of SwitchboardComponent Enum (InvocationQueue, ExecutorQueue)
+
+        Queries the SwitchboardResources table to retrieve the given component's url endpoint for the given workflow.
+        '''
         tbl = self.get_table(TableName.SwitchboardResources)
         try:
-            ep = tbl.get_item(Key={"component": component.value, "name": name})
+            resp = tbl.get_item(Key={"component": component.value, "name": name})
+            print(f"!!!!!! Retrieved item '{resp}'")
         except ClientError as err:
+            print(f"!!!!!! Could not get resource for name={name}, component={component}")
             raise Exception(
-                "%s - Couldn't get endpoint for %s from table %s. %s: %s",
+                "%s - Couldn't get %s endpoint for %s from table %s. %s: %s",
                 name,
                 component,
                 tbl.table_name,
                 err.response["Error"]["Code"],
                 err.response["Error"]["Message"],
             )
-        return ep
+
+        item = resp.get("Item")
+        if not item:
+            raise Exception(f"No entry found for name={name}, component={component} in {tbl.table_name}")
+
+        return item["url"]
 
 
     def get_table(self,table=TableName.SwitchboardState):

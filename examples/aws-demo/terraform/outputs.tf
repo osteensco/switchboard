@@ -1,3 +1,8 @@
+output "workflow_name" {
+  description = "The name of the workflow."
+  value = var.workflow_name
+}
+
 output "workflow_lambda_name" {
   description = "The name of the workflow Lambda function."
   value       = module.lambda.workflow_lambda_name
