@@ -7,3 +7,4 @@ __pycache__/
 **/terraform.tfstate.backup
 **/lambda_package.zip
 **/dist
+**/output.json
