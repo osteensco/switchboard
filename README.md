@@ -1,34 +1,39 @@
 <div  align=center>
 <img width="181" height="159" alt="image" src="https://github.com/user-attachments/assets/ffc35ecd-959e-4cf1-a226-6725d13b7376" />
+<div align=center>
+    <h1>Switchboard</h1>
+    <b>Event-driven, serverless orchestration-as-code.</b></div>
 </div>
 
 
-# Switchboard
 
-**Event-driven, serverless orchestration-as-code.**
 
-Switchboard is a lightweight, event-driven, and serverless state machine that provides glue-as-a-service. 
-It allows you to define and orchestrate complex workflows across microservices using simple, declarative code in your preferred language.
+
+
 
 ## What is Switchboard?
 
-**Glue-as-A-Service**
+Switchboard is a lightweight, event-driven, and serverless state machine that provides glue-as-a-service. 
+It allows you to define and orchestrate complex workflows across microservices using simple, declarative code in your preferred language.
+Switchboard is built to be cloud-agnostic and provides managed service abstractions without managed service cost.
+
+ - **Glue-as-A-Service** -
     Writing glue code manually for every workflow is repetitive, error-prone, and complex. It forces you to focus on infrastructure plumbing instead of business logic.
     Switchboard provides a structured framework and an SDK that abstracts away this complexity, effectively acting as pre-fabricated, high-quality glue.
 
-**Orchestration-as-Code**
+ - **Orchestration-as-Code** - 
     Instead of relying on complex, hard-to-manage infrastructure or proprietary platform services, Switchboard empowers you to define your orchestration logic as code. 
-    This makes your orchestration logic more transparent, faster to develop and deploy, and easier to debug.
+    This makes your orchestration logic more transparent, testable, faster to develop and deploy, and easier to debug.
 
-Switchboard is built to be cloud-agnostic and provides managed service abstractions without managed service cost.
 
 ## Key Features
 
-*   **Orchestration-as-Code:** Define your workflows using your preferred language. No complex YAML or JSON configurations, just logic flow an simple functions from the SDK.
 *   **Multi-Language Support:** A Python SDK is currently available. Go and TypeScript SDKs are under development.
-*   **Cloud-Agnostic by Design:** The Switchboard architecture is designed with pluggable interfaces for any cloud environment, providing robust defaults while empowering custom implementation if desired.
+*   **Orchestration-as-Code:** Define your workflows using your preferred language. No complex YAML or JSON configurations, just logic flow and simple functions from the SDK.
+*   **Cloud-Agnostic by Design:** The Switchboard architecture is designed with pluggable interfaces for any cloud environment, providing robust defaults while empowering custom implementations.
+*   **Prefabricated Cloud Components:** Focus on business and orchestration logic instead of cloud infrastructure and plumbing.
 *   **Handles Long-Running Jobs:** Switchboard seamlessly manages the state of long-running tasks without requiring you to build complex polling or callback mechanisms.
-*   **Cost-Effective:** By utilizing serverless functions and message queues, Switchboard can be a significantly cheaper orchestration solution compared to traditional, always-on workflow engines like Airflow.
+*   **Cost-Effective:** Utilize managed service level abstractions while avoiding the cost of a managed service.
 *   **Fully Open Source:** Switchboard is fully open-sourced and community-driven.
 
 ## How it Works
@@ -41,7 +46,20 @@ Switchboard's architecture is simple and robust, relying on standard cloud primi
 4.  **Executor:** A serverless function that executes or triggers execution of your individual tasks (your business logic).
 
 A typical workflow execution looks like this:
-`Trigger -> Invocation Queue -> Workflow -> Executor Queue -> Executor -> Task -> Response -> Invocation Queue -> State Update and Continue Workflow`
+
+```
+Trigger ─► Invocation Queue ◄─┐
+                 ▼            |
+              Workflow        |
+                 ▼            |
+           Executor Queue     |
+                 ▼            |
+              Executor        |
+                 ▼            |
+               Task           |            
+                 ▼            |
+             Response ────────┘
+```
 
 ## Getting Started (Python Example)
 
@@ -148,7 +166,7 @@ Switchboard is currently in active development. The Python SDK is the most matur
 
 Roadmap inclues:
 * [ ]   **CLI Tool:** For easy setup, management, and deployment of Switchboard resources.
-* [-]   **SDKs:** Bringing multi-language support to more developers.
+* [ ]   **SDKs:** Bringing multi-language support to more developers.
     * [x] Python
     * [ ] Golang
     * [ ] TypeScript
@@ -157,7 +175,7 @@ Roadmap inclues:
     * [ ] View and query logs through CLI tool
 * [ ]   **Advanced Configuration:** Get as far into the weeds as you see fit.
     * [ ] Accessible templates with sound defaults
-* [-]   **Comprehensive Documentation & Examples.**
+* [ ]   **Comprehensive Documentation & Examples.**
     * [x] AWS demo with python
     * [ ] Quickstart command in CLI
     * [ ] Docs site
