@@ -17,6 +17,12 @@ This document outlines the plan for building the `switchboard` CLI tool. The goa
             - `README.md` (with instructions for the user)
             - `.gitignore`
 
+- [ ] **`switchboard add <trigger_type>`**
+    - **Purpose**: Provide out-of-the-box trigger components for initiating workflows. (Cron, http endpoints, etc.)
+    - **Actions:**
+        - Maps `trigger_type` to predefined terraform scripts
+        - Adds these terraform scripts to project's terraform directory
+
 - [ ] **`switchboard package`**
     - **Purpose:** To create the `lambda_package.zip` deployment artifact.
     - **Actions:**
