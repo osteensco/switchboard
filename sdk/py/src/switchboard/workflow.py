@@ -268,7 +268,6 @@ class Workflow:
 
 
     def _update_db(self, db: DBInterface):
-        assert self.curr_step is not None
         log.bind(
             component="workflow_service",
             workflow_name=self.name,
@@ -529,6 +528,8 @@ class Workflow:
         Returns:
             An integer status code (e.g., 200) to indicate completion.
         """
+        status_code = 200
+
         if self.status is Status.InProcess:
             self.status = Status.Completed
             log.bind(
@@ -536,10 +537,22 @@ class Workflow:
                 workflow_name=self.name,
                 run_id=self.state.run_id
             ).info("-- Workflow marked as completed. --")
+       
+        # Provide 204 (no content) response if workflow contains no steps
+        if len(self.state.steps) == 0:
+            log.bind(
+                component="workflow_service",
+                workflow_name=self.name,
+                run_id=self.state.run_id,
+                context=self.context,
+                state=self.state
+            ).error("No tasks found in WORKFLOW!")
+            status_code = 204
+
         # Database needs to be updated one last time
         self._update_db(self.db)
 
-        return 200
+        return status_code
 
 
 

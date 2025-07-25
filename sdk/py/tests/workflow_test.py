@@ -221,7 +221,8 @@ def test_workflow_with_no_steps(mock_db):
     
     result = wf.Done()
 
-    assert result == 200
+    # Workflow with no steps should return a 204 (no content) message
+    assert result == 204
     assert wf.WORKFLOW.status == wf.Status.Completed
 
 
@@ -339,8 +340,27 @@ def test_GetCache_returns_current_state_cache(mock_db):
 def test_Done_returns_200(mock_db):
 
     db, db_mock = mock_db
-    db_mock.read.return_value = None
+    existing_state = State(
+        name="test_done",
+        run_id=100,
+        steps=[Step(step_id=1, step_name="step1", task_key="task1", retries=0)],
+        cache={},
+    )
+    db_mock.read.return_value = existing_state
+
+    # Context that ensures a curr_step is populated prior to calling Done()
+    context_json = json.dumps({
+        "ids": [100, 1, -1],
+        "executed": True,
+        "completed": True,
+        "success": True,
+        "cache": {}
+    })
     
-    wf.InitWorkflow(cloud=Cloud.CUSTOM, name="test_wf", db=db, context=NEW_WORKFLOW_CONTEXT)
+    wf.InitWorkflow(cloud=Cloud.CUSTOM, name="test_done", db=db, context=context_json)
+
     
     assert wf.Done() == 200
+
+
+
