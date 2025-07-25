@@ -24,9 +24,9 @@ def sample_task(context: Context):
     sb_response.send()
     return 200
 
-# The directory_map maps task names to Task objects.
+# The task_map maps task names to Task objects.
 # The executor will use this map to find and execute your tasks.
-directory_map = {
+task_map = {
     "sample_task": Task(name="sample_task", execute=sample_task),
 }
 

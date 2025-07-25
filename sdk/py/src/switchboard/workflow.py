@@ -419,7 +419,7 @@ class Workflow:
 
         Args:
             task: The name of the task to execute. This must correspond to a key
-                  in the executor's directory_map.
+                  in the executor's task_map.
 
         Returns:
             The Workflow instance to allow for method chaining, or a WaitStatus
@@ -464,7 +464,7 @@ class Workflow:
 
         Args:
             *tasks: A list of task names to execute in parallel. Each name must
-                    correspond to a key in the executor's directory_map.
+                    correspond to a key in the executor's task_map.
 
         Returns:
             The Workflow instance to allow for method chaining, or a WaitStatus
@@ -619,7 +619,7 @@ def SetCustomExecutorQueue(executor_queue_function: Callable):
 def Call(step_name: str, task: str, retries: int = 0) -> None:
     '''
     Call a task in a workflow.
-    A task string must match a key in the directory_map located in tasks.py as part of the executor function.
+    A task string must match a key in the task_map located in tasks.py as part of the executor function.
     '''
     print(f"!!!!!!!! -- calling task `{task}`")
     global WORKFLOW
@@ -632,7 +632,7 @@ def ParallelCall(step_name: str, *tasks: tuple[str, int]) -> None:
     '''
     Call a group of tasks that should run in parallel.
     The `tasks` argument are tuples containing task key's and number of retries. 
-    Task key must correspond to a key in the directory_map located in tasks.py as part of the executor function.
+    Task key must correspond to a key in the task_map located in tasks.py as part of the executor function.
     '''
     global WORKFLOW
     assert WORKFLOW is not None

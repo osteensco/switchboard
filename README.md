@@ -115,7 +115,7 @@ def another_task(context: Context):
     # Your microservice will need to provide a response to the workflow
     return 200
 
-directory_map = {
+task_map = {
     "process_data_task": Task(name="process_data_task", execute=process_data),
     "generate_report_task": Task(name="generate_report_task", execute=generate_report),
     "another_task": Task(name="another_task", execute=another_task),

@@ -22,7 +22,7 @@ class Task:
 class Step:
     step_id: int
     step_name: str # used to identify if step has already been called in _determine_step_execution
-    task_key: str # key that will be used to lookup function in directory_map in executor function's tasks.py
+    task_key: str # key that will be used to lookup function in task_map in executor function's tasks.py
     executed: bool = False
     completed: bool = False
     success: bool = False

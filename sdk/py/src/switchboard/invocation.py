@@ -10,8 +10,10 @@ from .enums import Cloud, SwitchboardComponent
 
 
 
-# Interface for interacting with the switchboard invocation and execution queues
-def Invoke(cloud: Cloud, endpoint: str, body: str, custom_queue_push: Callable | None = None) -> dict:
+def QueuePush(cloud: Cloud, endpoint: str, body: str, custom_queue_push: Callable | None = None) -> dict:
+    '''
+    Interface for interacting with the switchboard invocation and execution queues.
+    '''
     match cloud:
         case Cloud.AWS:
             return AWS_message_push(endpoint, body)
@@ -26,6 +28,9 @@ def Invoke(cloud: Cloud, endpoint: str, body: str, custom_queue_push: Callable |
 
 
 def discover_invocation_endpoint(db: DBInterface, name: str) -> str:
+    '''
+    Queries the SwitchboardResources table for the desired queue endpoint url.
+    '''
     return db.get_endpoint(name, SwitchboardComponent.InvocationQueue)
 
 

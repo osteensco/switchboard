@@ -115,7 +115,7 @@ def endstep(context: Context):
 
 
 
-directory_map = {
+task_map = {
     "my_task": Task(name="my_task", execute=my_task),
     "my_other_task": Task(name="my_other_task", execute=my_other_task),
     "final_task": Task(name="final_task", execute=final_task),

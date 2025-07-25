@@ -3,7 +3,7 @@ from typing import Callable
 from switchboard.response import Response
 from .db import DBInterface
 from .enums import Cloud, SwitchboardComponent
-from .invocation import Invoke
+from .invocation import QueuePush
 from .schemas import Context, ContextFromDict, Task
 from .logging_config import log
 
@@ -20,7 +20,7 @@ def push_to_executor(cloud: Cloud, db: DBInterface, name: str, body: str, custom
     ep = db.get_endpoint(name, SwitchboardComponent.ExecutorQueue)
     print(f"!!!!!! Executor endpoint: '{ep}'")
 
-    response = Invoke(cloud, ep, body, custom_execution_queue)
+    response = QueuePush(cloud, ep, body, custom_execution_queue)
     return response
 
 
@@ -29,13 +29,13 @@ def push_to_executor(cloud: Cloud, db: DBInterface, name: str, body: str, custom
 # It is important to note that the executor function will vary based on the cloud provider used.
 #
 #   import json
-#   from .tasks import directory_map #tasks.py in lambda directory
+#   from .tasks import task_map #tasks.py in lambda directory
 #
 #   def lambda_handler(event, context):
 #       assert len(event['Records']) == 1, f"Event records array does not equal 1, ensure the executor's queue batch size is set to 1. event['Records']: {event['Records']}"
 #       sb_context = json.loads(event['Records'][0]['body'])
 #       try:
-#           status = switchboard_execute(sb_context, directory_map)
+#           status = switchboard_execute(sb_context, task_map)
 #       except Exception as e:
 #           status = 400
 #       finally:
@@ -45,7 +45,7 @@ def switchboard_execute(
         cloud: Cloud, 
         db: DBInterface,
         context: dict,
-        directory_map: dict[str, Task],
+        task_map: dict[str, Task],
         custom_invocation_queue: Callable | None = None
 ) -> int:
     '''
@@ -71,8 +71,8 @@ def switchboard_execute(
 #   
 # process:
 #   - executor looks for tasks.py
-#   - tasks.py should just contain a dictionary called 'directory_map' 
-#   - the 'directory_map' should contain key value pairs with each value being a Task object (a Task is like an Operator in airflow)
+#   - tasks.py should just contain a dictionary called 'task_map' 
+#   - the 'task_map' should contain key value pairs with each value being a Task object (a Task is like an Operator in airflow)
 #   - context provides key to use for function call (this is the 'execute' field)
 #   - this allows for users to trigger anything they'd like through any means they like
 
@@ -82,19 +82,19 @@ def switchboard_execute(
 
 # The context in the executor will have two additonal fields -
 #   'workflow': the workflows name - str
-#   'execute': the task that should be executed, this should be a key in `directory_map` - str
+#   'execute': the task that should be executed, this should be a key in `task_map` - str
 
-    if (task_key := context['execute']) in directory_map:
+    if (task_key := context['execute']) in task_map:
         log.bind(
             component="executor_service",
             workflow_name=context.get('workflow'),
             run_id=context.get('ids', [None])[0],
             context=context,
             task_key=task_key
-        ).info("-- Executor attempting to call task from directory_map. --")
-        task = directory_map[task_key]
+        ).info("-- Executor attempting to call task from task_map. --")
+        task = task_map[task_key]
 
-        # all functions passed into tasks inside of the directory_map should take 
+        # all functions passed into tasks inside of the task_map should take 
         # the raw context as an argument and return a valid status code
         cntxt = ContextFromDict(context)
         cntxt.executed = True
