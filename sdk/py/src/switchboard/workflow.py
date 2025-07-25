@@ -226,7 +226,7 @@ class Workflow:
         return state
 
 
-    def _add_step(self, type: StepType, step_name: str, *tasks):
+    def _add_step(self, type: StepType, step_name: str, *tasks: tuple[str, int]):
         '''
         Add the next step to the state. Adding an additional step to the workflow state brings the assumption that it was attempted to be executed.
         The workflow state will not recognize that it's been executed until receiving a success response from the executor function.
@@ -238,12 +238,13 @@ class Workflow:
             task_id = 0
             parallel_tasks = []
             for t in tasks:
-                parallel_tasks.append(Step(step_id, step_name, t, task_id=task_id))
+                task, retries = t
+                parallel_tasks.append(Step(step_id, step_name, task, task_id=task_id, retries=retries))
                 task_id += 1
             self.state.steps.append(ParallelStep(step_id, step_name, parallel_tasks))
         else:
-            task = tasks[0]
-            self.state.steps.append(Step(self._generate_step_id(), step_name, task))
+            task, retries = tasks[0]
+            self.state.steps.append(Step(self._generate_step_id(), step_name, task, retries=retries))
         
         self.curr_step = self.state.steps[self.step_cnt]
         
@@ -322,7 +323,7 @@ class Workflow:
         
         return waiting
 
-    def _determine_step_execution(self, type: StepType, step_name: str, *tasks: str) -> bool:
+    def _determine_step_execution(self, type: StepType, step_name: str, *tasks: tuple[str, int]) -> bool:
         '''
         Helps determine if a step should be added and executed. Handles addition of the step.
         '''
@@ -407,7 +408,7 @@ class Workflow:
         return self
 
 
-    def call(self, step_name: str, task: str) -> Self | WaitStatus:
+    def call(self, step_name: str, task: str, retries: int) -> Self | WaitStatus:
         """
         Executes a single task as a step in the workflow.
 
@@ -429,18 +430,8 @@ class Workflow:
         if self.step_cnt < self.step_idx:
             return self._next(step_name, task)
 
-        if self._determine_step_execution(StepType.Call, step_name, task):
-            # walk through orchestration steps until we are at current call
-            # if self.step_cnt != self.step_idx:
-            #     log.bind(
-            #         component="workflow_service",
-            #         workflow_name=self.name,
-            #         run_id=self.state.run_id,
-            #         step_name=step_name
-            #     ).debug(f" -- step_cnt={self.step_cnt}, step_idx={self.step_idx} -- ")
-            #
-            #     return self._next(step_name, task)
-            
+        if self._determine_step_execution(StepType.Call, step_name, (task, retries)):
+
             # we don't need to update the db until after a successful execution
             self._enqueue_execution(self.cloud, self.db, self.name, task)
         
@@ -463,7 +454,7 @@ class Workflow:
         return WaitStatus(self.status, self.state)
 
 
-    def parallel_call(self, step_name: str, *tasks: str) -> Self | WaitStatus:
+    def parallel_call(self, step_name: str, *tasks: tuple[str,int]) -> Self | WaitStatus:
         """
         Executes multiple tasks in parallel as a single step in the workflow.
 
@@ -485,7 +476,8 @@ class Workflow:
         if self._determine_step_execution(StepType.Parallel, step_name, *tasks):
             assert isinstance(self.curr_step, ParallelStep)
             
-            for task_key in tasks:
+            for t in tasks:
+                task_key = t[0]
                 task_id = None
 
                 # TODO
@@ -624,7 +616,7 @@ def SetCustomExecutorQueue(executor_queue_function: Callable):
     WORKFLOW._set_custom_execution_queue(executor_queue_function)
 
 @wf_interface
-def Call(step_name, task: str) -> None:
+def Call(step_name: str, task: str, retries: int = 0) -> None:
     '''
     Call a task in a workflow.
     A task string must match a key in the directory_map located in tasks.py as part of the executor function.
@@ -632,14 +624,15 @@ def Call(step_name, task: str) -> None:
     print(f"!!!!!!!! -- calling task `{task}`")
     global WORKFLOW
     assert WORKFLOW is not None
-    WORKFLOW = WORKFLOW.call(step_name, task)
+    WORKFLOW = WORKFLOW.call(step_name, task, retries)
 
 
 @wf_interface
-def ParallelCall(step_name, *tasks: str) -> None:
+def ParallelCall(step_name: str, *tasks: tuple[str, int]) -> None:
     '''
     Call a group of tasks that should run in parallel.
-    The *tasks argument are strings that must match corresponding keys in the directory_map located in tasks.py as part of the executor function.
+    The `tasks` argument are tuples containing task key's and number of retries. 
+    Task key must correspond to a key in the directory_map located in tasks.py as part of the executor function.
     '''
     global WORKFLOW
     assert WORKFLOW is not None
