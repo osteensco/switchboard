@@ -1,13 +1,10 @@
-from typing import final
 import pytest
 import json
-from unittest.mock import MagicMock, patch
 
-from switchboard.enums import Cloud, Status
-from switchboard.response import Response, Trigger
+from switchboard.enums import Cloud
+from switchboard.response import Trigger
 from switchboard.workflow import GetCache, InitWorkflow, Call, Done, ParallelCall, SetCustomExecutorQueue, Workflow
-from switchboard.db import DB, DBInterface
-from switchboard.schemas import State, Context
+from switchboard.db import DB
 from switchboard.executor import switchboard_execute
 from .tasks import directory_map, mock_invocation_queue
 from .db import DBMockInterface
@@ -48,9 +45,9 @@ def test_endtoend_integration():
         Call("step2", "my_other_task")
         Call("step3", "final_task")
 
-        ParallelCall("step4", "psyyych", "anotherone", "yetanother")
+        ParallelCall("step4", ("psyyych",0), ("anotherone",0), ("yetanother",0))
         if cache["test_true"]:
-            ParallelCall("step5", "conditional1", "conditional2")
+            ParallelCall("step5", ("conditional1", 0), ("conditional2",0))
         else:
             print(f"!!!!! - 'test_true'={cache["test_true"]}")
             Call("badstep1", "ishouldntrun1")

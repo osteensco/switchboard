@@ -2,7 +2,7 @@ import pytest
 import json
 from unittest.mock import patch, MagicMock
 from switchboard.enums import Cloud
-from switchboard.schemas import State, Context, Step, ParallelStep
+from switchboard.schemas import State, Step, ParallelStep
 from switchboard.db import DB, DBInterface
 import switchboard.workflow as wf
 
@@ -152,7 +152,7 @@ def test_ParallelCall_enqueues_multiple_tasks(mock_enqueue, mock_db):
     
     wf.InitWorkflow(cloud=Cloud.CUSTOM, name="test_wf", db=db, context=NEW_WORKFLOW_CONTEXT)
     
-    wf.ParallelCall("parallel_step", "task_a", "task_b")
+    wf.ParallelCall("parallel_step", ("task_a",0), ("task_b",0))
     
     assert isinstance(wf.WORKFLOW, wf.WaitStatus)
     assert isinstance(wf.WORKFLOW.state.steps[0], ParallelStep)
@@ -172,7 +172,7 @@ def test_ParallelCall_respects_WaitStatus(mock_enqueue, mock_db):
     # Manually set the workflow to a waiting state
     wf.WORKFLOW = wf.WaitStatus(status=wf.Status.InProcess, state=wf.WORKFLOW.state)
 
-    wf.ParallelCall("parallel_step", "task_a", "task_b")
+    wf.ParallelCall("parallel_step", ("task_a",0), ("task_b",0))
 
     mock_enqueue.assert_not_called()
 
