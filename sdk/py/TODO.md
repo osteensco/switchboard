@@ -10,3 +10,4 @@
 
  - [ ] add additional libraries to enhance testing (moto, coverage)
 
+ - [ ] address TODO notes throughout SDK
