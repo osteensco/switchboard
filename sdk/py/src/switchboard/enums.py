@@ -43,14 +43,12 @@ class CloudResourceType(Enum):
 class Status(Enum):
     InProcess = 'InProcess'
     Completed = 'Completed'
-    OutOfRetries = 'OutOfRetries'
 
 
 
 class TableName(Enum):
     SwitchboardState = 'SwitchboardState'
-    # table for discoverable resources. see schemas.Endpoint.
-    SwitchboardResources = 'SwitchboardResources'
+    SwitchboardResources = 'SwitchboardResources' # table for discoverable resources. see schemas.Endpoint.
 
 
 

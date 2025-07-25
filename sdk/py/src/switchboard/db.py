@@ -89,7 +89,8 @@ class AWS_DataInterface(DBInterface):
             "name":        "string",   // Partition key — represents the workflow name
             "run_id":      "number",   // Sort key — monotonically increasing run ID within each name
             "steps":       "list",     // List of steps or tasks executed during the run and the status of each
-            "cache":       "map"       // Dictionary-like structure storing any cached data or intermediate results
+            "cache":       "map",       // Dictionary-like structure storing any cached data or intermediate results
+            "status":       "string"    // String representation of Status enum
         }
 
         SwitchboardResources: {

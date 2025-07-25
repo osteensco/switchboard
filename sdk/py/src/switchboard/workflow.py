@@ -18,7 +18,6 @@ class WaitStatus:
     The WaitStatus class is a dummy object used to avoid execution of downstream tasks during execution of the main switchboard serverless function.
     """
     def __init__(self, status: Status, state: State) -> None:
-        self.status = status
         self.state = state
 
     def call(self, *args, **kargs) -> Self:
@@ -76,7 +75,6 @@ class Workflow:
         self.step_idx = 0
         self.step_cnt = 0
         self.curr_step = None
-        self.status = Status.InProcess
 
         self.db = db.interface
         self.context = self._get_context(context)
@@ -144,7 +142,7 @@ class Workflow:
             print(f"!!!!! could not find name={self.name}, run_id={self.context.ids[0]}, state={state}")
             # handle new state creation (new workflow run)
             id = self._generate_id(db)
-            state = State(self.name, id, [], {})
+            state = State(self.name, id, [], {}, Status.InProcess)
             self.context.ids[0] = id 
             return state
         
@@ -451,7 +449,7 @@ class Workflow:
             run_id=self.state.run_id,
             step_name=step_name
         ).info("-- Returning WaitStatus from call() execution. --")
-        return WaitStatus(self.status, self.state)
+        return WaitStatus(self.state.status, self.state)
 
 
     def parallel_call(self, step_name: str, *tasks: tuple[str,int]) -> Self | WaitStatus:
@@ -507,7 +505,7 @@ class Workflow:
             run_id=self.state.run_id,
             step_name=step_name
         ).info("-- Returning WaitStatus from parallel_call() execution. --")
-        return WaitStatus(self.status, self.state)
+        return WaitStatus(self.state.status, self.state)
 
 
     def done(self):
@@ -522,8 +520,8 @@ class Workflow:
         """
         status_code = 200
 
-        if self.status is Status.InProcess:
-            self.status = Status.Completed
+        if self.state.status is Status.InProcess:
+            self.state.status = Status.Completed
             log.bind(
                 component="workflow_service",
                 workflow_name=self.name,

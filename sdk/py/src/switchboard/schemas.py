@@ -4,7 +4,8 @@ from typing import Callable
 from .enums import (
     Cloud, 
     CloudResource, 
-    CloudResourceType, 
+    CloudResourceType,
+    Status, 
     SwitchboardComponent
 )
 
@@ -48,12 +49,15 @@ class ParallelStep:
         d["tasks"] = tasks
         return d
 
+
+# dataclass for SwitchboardState table
 @dataclass
 class State:
     name: str
     run_id: int
     steps: list[Step|ParallelStep]
     cache: dict # cache can be used to store data that is pertinent to conditional steps in a workflow.
+    status: Status
 
     def to_dict(self):
         steps = [step.to_dict() for step in self.steps]
@@ -63,6 +67,8 @@ class State:
 
 
 def NewState(data: dict) -> State:
+    # TODO
+    #   - assert required fields of `data` argument
     deserialized_steps = []
     for step_data in data["steps"]:
         if "tasks" in step_data: # It's a ParallelStep
@@ -70,7 +76,7 @@ def NewState(data: dict) -> State:
             deserialized_steps.append(ParallelStep(**{**step_data, "tasks": deserialized_tasks}))
         else: # It's a Step
             deserialized_steps.append(Step(**step_data))
-    return State(data["name"], int(data["run_id"]), deserialized_steps, data["cache"])
+    return State(data["name"], int(data["run_id"]), deserialized_steps, data["cache"], data["status"])
 
 
 
@@ -113,9 +119,11 @@ def ContextFromDict(context: dict) -> Context:
     return Context(context["ids"],context["executed"],context["completed"],context["success"],context["cache"])
 
 
-# dataclass for cloud endpoints.
+# dataclass for SwitchboardResources table
 @dataclass
-class Endpoint:
+class Resource:
+# TODO 
+#   - utilize this class when querying SwitchboardResources
     component: SwitchboardComponent
     url: str
     cloud: Cloud

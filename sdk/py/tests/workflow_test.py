@@ -1,7 +1,7 @@
 import pytest
 import json
 from unittest.mock import patch, MagicMock
-from switchboard.enums import Cloud
+from switchboard.enums import Cloud, Status
 from switchboard.schemas import State, Step, ParallelStep
 from switchboard.db import DB, DBInterface
 import switchboard.workflow as wf
@@ -63,6 +63,7 @@ def test_InitWorkflow_for_existing_run(mock_db):
         run_id=456,
         steps=[Step(step_id=0, step_name="step1", task_key="task1", retries=0)],
         cache={"initial_data": "value"},
+        status=Status.InProcess
     )
     db_mock.read.return_value = existing_state
     
@@ -223,7 +224,7 @@ def test_workflow_with_no_steps(mock_db):
 
     # Workflow with no steps should return a 204 (no content) message
     assert result == 204
-    assert wf.WORKFLOW.status == wf.Status.Completed
+    assert wf.WORKFLOW.state.status == wf.Status.Completed
 
 
 @patch("switchboard.workflow.Workflow._enqueue_execution")
@@ -260,6 +261,7 @@ def test_unsuccessful_step_and_retry_logic(mock_enqueue, mock_db):
         run_id=789,
         steps=[Step(step_id=0, step_name="failing_step", task_key="failing_task", retries=1)],
         cache={},
+        status=Status.InProcess
     )
     db_mock.read.return_value = existing_state
 
@@ -300,6 +302,7 @@ def test_out_of_retries(mock_enqueue, mock_db):
         run_id=789,
         steps=[Step(step_id=0, step_name="failing_step", task_key="failing_task", retries=0)],
         cache={},
+        status=Status.InProcess
     )
     db_mock.read.return_value = existing_state
 
@@ -345,6 +348,7 @@ def test_Done_returns_200(mock_db):
         run_id=100,
         steps=[Step(step_id=1, step_name="step1", task_key="task1", retries=0)],
         cache={},
+        status=Status.InProcess
     )
     db_mock.read.return_value = existing_state
 
