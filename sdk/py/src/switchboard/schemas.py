@@ -67,8 +67,9 @@ class State:
 
 
 def NewState(data: dict) -> State:
-    # TODO
-    #   - assert required fields of `data` argument
+    '''
+    Takes the state as a dictionary and converts to a State object.
+    '''
     deserialized_steps = []
     for step_data in data["steps"]:
         if "tasks" in step_data: # It's a ParallelStep
@@ -80,8 +81,7 @@ def NewState(data: dict) -> State:
 
 
 
-# TODO
-#   - a context object might need to just have the workflow name as a field?
+
 # context = {
 #             "ids": [
 #                 100, # run id
@@ -100,6 +100,7 @@ class Context:
         -1 # task id
     ]
     '''
+    workflow: str
     ids: list[int]
     executed: bool
     completed: bool
@@ -112,18 +113,10 @@ class Context:
         return d
 
 
-def ContextFromDict(context: dict) -> Context:
-    '''
-    Converts the context in dictionary form to a Context object.
-    '''
-    return Context(context["ids"],context["executed"],context["completed"],context["success"],context["cache"])
-
 
 # dataclass for SwitchboardResources table
 @dataclass
 class Resource:
-# TODO 
-#   - utilize this class when querying SwitchboardResources
     component: SwitchboardComponent
     url: str
     cloud: Cloud

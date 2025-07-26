@@ -2,7 +2,9 @@ from botocore.utils import ClientError
 from abc import ABC, abstractmethod
 from boto3.dynamodb.conditions import Key
 
-from .schemas import NewState, State
+from switchboard.logging_config import log
+
+from .schemas import NewState, Resource, State
 from .enums import SwitchboardComponent, TableName, Cloud
 from .cloud import (
         AWS_db_connect,
@@ -13,17 +15,13 @@ from .cloud import (
 
 
 
-#TODO
-# - If a user creates a custom DBInterface, this would need to be included in the workflow and executor functions.
-#   This means that a custom DBInterface should probably be added in a separate .py file and imported in both workflow and executor function files.
-#   Need to account for this in documentation and the cli tool's deployer.
 
 # Database Interface
 class DBInterface(ABC):
     '''
     Abstract base class for implementing a switchboard database interface.
     Note that the out-of-the-box database interfaces switchboard provides are all built off of this interface. 
-    This class is available in the API to allow users the capability to create custom database interfaces for data persistence solutions of their choosing.
+    This class is available in the API to provide users with the capability to create custom database interfaces for data persistence solutions of their choosing.
 
     Parameters:
         conn: A specific database connection object. 
@@ -33,6 +31,7 @@ class DBInterface(ABC):
         - read(name, id): Retrieves the state associated with the given `name` and `run id`.
         - write(state): Stores or updates the `State` associated with the workflow `name` and `run_id`.
         - increment_id(name): Atomically increment a counter to generate the `run_id` for a given workflow identified by `name`.
+        - get_endpoint(name, component): Retrieve a queue's endpoint url from the SwitchboardResources table in the database.
 
     Example:
         ```python 
@@ -48,10 +47,15 @@ class DBInterface(ABC):
 
             def increment_id(self, name):
                 # Custom increment logic
+            
+            def get_endpoint(self, name, component):
+                # Custom get endpoint logic
 
         conn = CustomInterface(redis.Redis(host='myendpoint', port=6379))
         db = DB(Cloud.CUSTOM, conn)
         ```
+
+        Note that the user will need to implement the necessary terraform scripts for this custom database implementation themselves.
     '''
     def __init__(self, conn) -> None:
         super().__init__()
@@ -73,9 +77,7 @@ class DBInterface(ABC):
     def get_endpoint(self, name: str, component: SwitchboardComponent) -> str:
         pass
     
-    @abstractmethod
-    def get_table(self, table: TableName):
-        pass
+
 
 
 
@@ -103,7 +105,7 @@ class AWS_DataInterface(DBInterface):
         ```
 
     '''
-    def read(self,name,id):
+    def read(self, name: str, id: int):
         tbl = self.get_table()
         state = None
         try:
@@ -122,7 +124,7 @@ class AWS_DataInterface(DBInterface):
         finally:
             return state
 
-    def write(self,state):
+    def write(self, state: State):
         tbl = self.get_table()
         state_dict = state.to_dict()
         try:
@@ -144,7 +146,7 @@ class AWS_DataInterface(DBInterface):
             assert response['ResponseMetadata']['HTTPStatusCode'] == 200
             
 
-    def increment_id(self,name):
+    def increment_id(self, name: str):
         tbl = self.get_table()
         print(f"DEBUG: Type of name: {type(name)}, value: {name}")
         print(f"DEBUG: Type of table name: {type(tbl.table_name)}, value: {tbl.table_name}")
@@ -159,7 +161,7 @@ class AWS_DataInterface(DBInterface):
         return latest_run_id + 1
 
 
-    def get_endpoint(self, name, component) -> str:
+    def get_endpoint(self, name: str, component: SwitchboardComponent) -> str:
         '''
         Args ->
 
@@ -186,11 +188,22 @@ class AWS_DataInterface(DBInterface):
         item = resp.get("Item")
         if not item:
             raise Exception(f"No entry found for name={name}, component={component} in {tbl.table_name}")
+        resource = Resource(**item)
+        log.bind(
+            component="db_service",
+            workflow_name=name,
+            resrc_component=resource.component,
+            resrc_url=resource.url,
+            resrc_cloud=resource.cloud,
+            resource=resource.resource,
+            resource_type=resource.resource_type
+        ).info(f"-- Retrieved {component} endpoint. --")
+        return resource.url
 
-        return item["url"]
 
 
-    def get_table(self,table=TableName.SwitchboardState):
+    # dynamodb specific helper function
+    def get_table(self, table=TableName.SwitchboardState):
         tbl = self.conn.Table(table.value)
         return tbl
 

@@ -1,5 +1,4 @@
-import json
-from switchboard.schemas import Cloud, Context, ContextFromDict
+from switchboard.schemas import Cloud, Context
 from switchboard.schemas import Task
 from switchboard.response import Response
 from .db import DBMockInterface

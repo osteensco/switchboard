@@ -48,7 +48,7 @@ class Status(Enum):
 
 class TableName(Enum):
     SwitchboardState = 'SwitchboardState'
-    SwitchboardResources = 'SwitchboardResources' # table for discoverable resources. see schemas.Endpoint.
+    SwitchboardResources = 'SwitchboardResources' # table for discoverable resources. see schemas.Resources
 
 
 

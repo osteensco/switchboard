@@ -10,4 +10,15 @@
 
  - [ ] add additional libraries to enhance testing (moto, coverage)
 
- - [ ] address TODO notes throughout SDK
+ - [x] address TODO notes throughout SDK
+
+ - [ ] convert print statements to log statements
+
+ - [ ] Potential out-of-the-box tasks switchboard should provide
+   - [ ] call http endpoint
+   - [ ] trigger specific compute resources
+   - [ ] push to message queue
+   - [ ] trigger storage/DB operation (i.e. scheduled query or stored procedure)
+   - [ ] trigger ML/Data Pipeline 
+   - [ ] Event emitter/bus
+

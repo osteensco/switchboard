@@ -71,7 +71,7 @@ def test_endtoend_integration():
 
     # 1. Trigger the start of the workflow
     # The trigger sends the initial message to the workflow_queue
-    Trigger(Cloud.CUSTOM, db.interface, "my_workflow", custom_queue_push=push_to_workflow_queue)
+    Trigger(Cloud.CUSTOM, db.interface, "test_workflow", custom_queue_push=push_to_workflow_queue)
     assert len(workflow_queue) == 1
     assert len(executor_queue) == 0
 

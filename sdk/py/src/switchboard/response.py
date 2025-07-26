@@ -68,7 +68,7 @@ class Trigger(Response):
     The Trigger object is used to initiate a workflow. This inherits from the `Response` class, and will push a message to the invocation queue that indicates a new run should be started.
     '''
     def __init__(self, cloud: Cloud, db: DBInterface, name: str, custom_queue_push: Callable | None = None) -> None:
-        super().__init__(cloud, db, name, Context([-1,-1,-1],True,True,True,{}), custom_queue_push=custom_queue_push)
+        super().__init__(cloud, db, name, Context(name, [-1,-1,-1],True,True,True,{}), custom_queue_push=custom_queue_push)
         self.send()
 
 

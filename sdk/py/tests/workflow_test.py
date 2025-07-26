@@ -9,10 +9,11 @@ import switchboard.workflow as wf
 
 # A default, valid context for initializing a new workflow.
 NEW_WORKFLOW_CONTEXT = json.dumps({
+    "workflow": "test_workflow",
     "ids": [-1, -1, -1],
-    "executed": False,
-    "completed": False,
-    "success": False,
+    "executed": True,
+    "completed": True,
+    "success": True,
     "cache": {}
 })
 
@@ -68,6 +69,7 @@ def test_InitWorkflow_for_existing_run(mock_db):
     db_mock.read.return_value = existing_state
     
     context_json = json.dumps({
+        "workflow": "test_workflow",
         "ids": [456, 0, -1],
         "executed": True,
         "completed": False,
@@ -93,7 +95,7 @@ def test_Call_enqueues_task_for_new_step(mock_enqueue, mock_db):
     db, db_mock = mock_db
     db_mock.read.return_value = None
 
-    wf.InitWorkflow(cloud=Cloud.CUSTOM, name="test_wf", db=db, context=NEW_WORKFLOW_CONTEXT)
+    wf.InitWorkflow(cloud=Cloud.CUSTOM, name="test_workflow", db=db, context=NEW_WORKFLOW_CONTEXT)
     
     wf.Call("first_step", "do_some_work")
     
@@ -112,7 +114,7 @@ def test_Call_is_noop_if_step_already_completed(mock_enqueue, mock_db):
     db, db_mock = mock_db
     db_mock.read.return_value = None
 
-    wf.InitWorkflow(cloud=Cloud.CUSTOM, name="test_wf", db=db, context=NEW_WORKFLOW_CONTEXT)
+    wf.InitWorkflow(cloud=Cloud.CUSTOM, name="test_workflow", db=db, context=NEW_WORKFLOW_CONTEXT)
     
     assert(isinstance(wf.WORKFLOW,wf.Workflow))
     wf.WORKFLOW.state.steps.append(Step(step_id=0, step_name="first_step", executed=True, completed=True, success=True, task_key="do_work", retries=0))
@@ -132,7 +134,7 @@ def test_Call_respects_WaitStatus(mock_enqueue, mock_db):
     db, db_mock = mock_db
     db_mock.read.return_value = None
 
-    wf.InitWorkflow(cloud=Cloud.CUSTOM, name="test_wf", db=db, context=NEW_WORKFLOW_CONTEXT)
+    wf.InitWorkflow(cloud=Cloud.CUSTOM, name="test_workflow", db=db, context=NEW_WORKFLOW_CONTEXT)
     
     # Manually set the workflow to a waiting state
     wf.WORKFLOW = wf.WaitStatus(status=wf.Status.InProcess, state=wf.WORKFLOW.state)
@@ -151,7 +153,7 @@ def test_ParallelCall_enqueues_multiple_tasks(mock_enqueue, mock_db):
     db, db_mock = mock_db
     db_mock.read.return_value = None
     
-    wf.InitWorkflow(cloud=Cloud.CUSTOM, name="test_wf", db=db, context=NEW_WORKFLOW_CONTEXT)
+    wf.InitWorkflow(cloud=Cloud.CUSTOM, name="test_workflow", db=db, context=NEW_WORKFLOW_CONTEXT)
     
     wf.ParallelCall("parallel_step", ("task_a",0), ("task_b",0))
     
@@ -168,7 +170,7 @@ def test_ParallelCall_respects_WaitStatus(mock_enqueue, mock_db):
     db, db_mock = mock_db
     db_mock.read.return_value = None
 
-    wf.InitWorkflow(cloud=Cloud.CUSTOM, name="test_wf", db=db, context=NEW_WORKFLOW_CONTEXT)
+    wf.InitWorkflow(cloud=Cloud.CUSTOM, name="test_workflow", db=db, context=NEW_WORKFLOW_CONTEXT)
     
     # Manually set the workflow to a waiting state
     wf.WORKFLOW = wf.WaitStatus(status=wf.Status.InProcess, state=wf.WORKFLOW.state)
@@ -186,7 +188,7 @@ def test_conditional_logic_in_workflow(mock_enqueue, mock_db):
     db, db_mock = mock_db
     db_mock.read.return_value = None
 
-    wf.InitWorkflow(cloud=Cloud.CUSTOM, name="test_wf", db=db, context=NEW_WORKFLOW_CONTEXT)
+    wf.InitWorkflow(cloud=Cloud.CUSTOM, name="test_workflow", db=db, context=NEW_WORKFLOW_CONTEXT)
     
     wf.WORKFLOW.state.cache["should_run"] = True
 
@@ -200,7 +202,7 @@ def test_conditional_logic_in_workflow(mock_enqueue, mock_db):
     wf.WORKFLOW = None
     mock_enqueue.reset_mock()
 
-    wf.InitWorkflow(cloud=Cloud.CUSTOM, name="test_wf", db=db, context=NEW_WORKFLOW_CONTEXT)
+    wf.InitWorkflow(cloud=Cloud.CUSTOM, name="test_workflow", db=db, context=NEW_WORKFLOW_CONTEXT)
     
     assert isinstance(wf.WORKFLOW, wf.Workflow)
     wf.WORKFLOW.state.cache["should_run"] = False
@@ -218,7 +220,7 @@ def test_workflow_with_no_steps(mock_db):
     db, db_mock = mock_db
     db_mock.read.return_value = None
 
-    wf.InitWorkflow(cloud=Cloud.CUSTOM, name="test_wf", db=db, context=NEW_WORKFLOW_CONTEXT)
+    wf.InitWorkflow(cloud=Cloud.CUSTOM, name="test_workflow", db=db, context=NEW_WORKFLOW_CONTEXT)
     
     result = wf.Done()
 
@@ -237,7 +239,7 @@ def test_SetCustomExecutorQueue_is_called(mock_enqueue, mock_db):
 
     custom_queue_func = MagicMock()
 
-    wf.InitWorkflow(cloud=Cloud.CUSTOM, name="test_wf", db=db, context=NEW_WORKFLOW_CONTEXT)
+    wf.InitWorkflow(cloud=Cloud.CUSTOM, name="test_workflow", db=db, context=NEW_WORKFLOW_CONTEXT)
     wf.SetCustomExecutorQueue(custom_queue_func)
     
     assert isinstance(wf.WORKFLOW, wf.Workflow)
@@ -267,6 +269,7 @@ def test_unsuccessful_step_and_retry_logic(mock_enqueue, mock_db):
 
     # Context indicating the step has been executed and completed, but was not successful
     context_json = json.dumps({
+        "workflow": "test_wf",
         "ids": [789, 0, -1],
         "executed": True,
         "completed": True,
@@ -308,6 +311,7 @@ def test_out_of_retries(mock_enqueue, mock_db):
 
     # Context indicating the step has been executed and completed, but was not successful
     context_json = json.dumps({
+        "workflow": "test_wf",
         "ids": [789, 0, -1],
         "executed": True,
         "completed": True,
@@ -333,7 +337,7 @@ def test_GetCache_returns_current_state_cache(mock_db):
     db, db_mock = mock_db
     db_mock.read.return_value = None
     
-    wf.InitWorkflow(cloud=Cloud.CUSTOM, name="test_wf", db=db, context=NEW_WORKFLOW_CONTEXT)
+    wf.InitWorkflow(cloud=Cloud.CUSTOM, name="test_workflow", db=db, context=NEW_WORKFLOW_CONTEXT)
     assert(isinstance(wf.WORKFLOW, wf.Workflow))
     wf.WORKFLOW.state.cache = {"test_key": "test_value"}
     
@@ -354,6 +358,7 @@ def test_Done_returns_200(mock_db):
 
     # Context that ensures a curr_step is populated prior to calling Done()
     context_json = json.dumps({
+        "workflow": "test_done",
         "ids": [100, 1, -1],
         "executed": True,
         "completed": True,

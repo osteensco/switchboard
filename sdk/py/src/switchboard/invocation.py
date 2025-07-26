@@ -22,7 +22,7 @@ def QueuePush(cloud: Cloud, endpoint: str, body: str, custom_queue_push: Callabl
         case Cloud.AZURE:
             return AZURE_message_push(body)
         case Cloud.CUSTOM:
-            assert custom_queue_push is not None
+            assert custom_queue_push is not None, "Custom queue indicated but no queue push function provided!"
             return custom_queue_push(body)
 
 
