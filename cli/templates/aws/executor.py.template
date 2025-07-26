@@ -1,9 +1,9 @@
 import json
 from switchboard import switchboard_execute, DB, Cloud
 
-# Import the directory_map from your tasks file.
+# Import the task_map from your tasks file.
 # This map tells the executor where to find your task functions.
-from tasks import directory_map
+from tasks import task_map
 
 
 # This is the entry point for the task executor.
@@ -16,7 +16,7 @@ def lambda_handler(event, context):
     This function parses the Switchboard context from the incoming event,
     initializes a database connection, and then calls the main
     `switchboard_execute` function to run the appropriate task from the
-    `directory_map`.
+    `task_map`.
 
     It's designed to handle one task at a time. Ensure your queue's
     batch size is set to 1.
@@ -36,13 +36,13 @@ def lambda_handler(event, context):
     db = DB(Cloud.AWS)
 
     # Execute the task using the core Switchboard executor logic.
-    # This function looks up the task in the `directory_map` and runs it,
+    # This function looks up the task in the `task_map` and runs it,
     # handling state updates and responses automatically.
     status = switchboard_execute(
         cloud=Cloud.AWS,
         db=db.interface,
         context=sb_context,
-        directory_map=directory_map
+        task_map=task_map
     )
 
     return {

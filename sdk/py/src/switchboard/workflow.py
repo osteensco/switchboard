@@ -18,7 +18,6 @@ class WaitStatus:
     The WaitStatus class is a dummy object used to avoid execution of downstream tasks during execution of the main switchboard serverless function.
     """
     def __init__(self, status: Status, state: State) -> None:
-        self.status = status
         self.state = state
 
     def call(self, *args, **kargs) -> Self:
@@ -28,7 +27,9 @@ class WaitStatus:
         return self
 
     def done(self) -> int:
-        print("!!!!!!!!! WaitStatus done called")
+        log.bind(
+            workflow=self.state.name
+        ).info("-- WaitStatus done called --")
         return 200
 
 
@@ -76,11 +77,14 @@ class Workflow:
         self.step_idx = 0
         self.step_cnt = 0
         self.curr_step = None
-        self.status = Status.InProcess
 
         self.db = db.interface
+
         self.context = self._get_context(context)
+        assert self.name == self.context.workflow, "Context provided to Workflow does not match the Workflow's name!"
+
         self.state = self._init_state(self.db)
+
 
         self._initialized = True
         log.bind(
@@ -91,6 +95,11 @@ class Workflow:
 
 
     def _set_custom_execution_queue(self, custom_execution_queue_function: Callable):
+        log.bind(
+            component="workflow_service", 
+            workflow_name=self.name,
+            context=self.context
+        ).info("-- Custom execution queue added to WORKFLOW. --")
         self.custom_execution_queue = custom_execution_queue_function
 
 
@@ -101,27 +110,13 @@ class Workflow:
         '''
 
         raw_context = json.loads(context) 
-        print(f"!!!!!!!!!!!!! - {raw_context}")
-        # required fields
-        assert "ids" in raw_context.keys(), "required field 'ids' not present in context."
-        assert "executed" in raw_context.keys(), "required field 'executed' not present in context."
-        assert "completed" in raw_context.keys(), "required field 'completed' not present in context."
-        assert "success" in raw_context.keys(), "required field 'success' not present in context."
-        assert "cache" in raw_context.keys(), "required field 'cache' not present in context."
+        log.bind(
+            component="workflow_service",
+            raw_context=raw_context
+        ).info("-- Raw context received. --")
 
-        cntx = Context(raw_context["ids"], raw_context["executed"], raw_context["completed"], raw_context["success"], raw_context["cache"])
+        cntx = Context(**raw_context)
         assert len(cntx.ids) == 3, "context ids should have the run_id (0 idx), step_id (1 idx), and the task_id (2 idx)"
-
-        # a newly triggered workflow will always have these ids exactly
-        if cntx.ids == [-1,-1,-1]: 
-            cntx = Context(cntx.ids, True, True, True, {})
-        
-        # optional fields
-        if "cache" in raw_context:
-            assert isinstance(raw_context["cache"], dict), "The 'cache' field should be a dictionary like object."
-            for k,v in raw_context["cache"].items():
-                cntx.cache[k] = v
-
 
         log.bind(
             component="workflow_service",
@@ -138,14 +133,27 @@ class Workflow:
 
         state = db.read(self.name, self.context.ids[0])
         if state:
-            print(f"!!!!!! found state={state}")
             assert isinstance(state, State) 
+            log.bind(
+                workflow=state.name,
+                state=state.to_dict()
+            ).debug("-- Existing State found --")
         else:
-            print(f"!!!!! could not find name={self.name}, run_id={self.context.ids[0]}, state={state}")
+            log.bind(
+                workflow=self.name,
+                state=state
+            ).debug(f"-- Could not find state with name={self.name}, run_id={self.context.ids[0]} --")
+
             # handle new state creation (new workflow run)
             id = self._generate_id(db)
-            state = State(self.name, id, [], {})
+            state = State(self.name, id, [], {}, Status.InProcess)
             self.context.ids[0] = id 
+
+            log.bind(
+                workflow=self.name,
+                state=state
+            ).debug(f"-- Created new State object with name={self.name}, run_id={id} --")
+
             return state
         
         # if we already have an initialized state it should never be emtpy
@@ -235,12 +243,11 @@ class Workflow:
         assert self.step_idx == max(len(self.state.steps)-1,0), f"The step_idx is incorrect, step_id: {self.step_idx}, state.steps: {self.state.steps}"
         if type == StepType.Parallel:
             step_id = self._generate_step_id()
-            task_id = 0
+            task_id = 0 
             parallel_tasks = []
-            for t in tasks:
-                task, retries = t
-                parallel_tasks.append(Step(step_id, step_name, task, task_id=task_id, retries=retries))
-                task_id += 1
+            for task, retries in tasks:
+                parallel_tasks.append(Step(step_id, step_name, task, task_id=task_id, retries=retries)) # add Step object to task list
+                task_id += 1 # generate task_id
             self.state.steps.append(ParallelStep(step_id, step_name, parallel_tasks))
         else:
             task, retries = tasks[0]
@@ -250,7 +257,7 @@ class Workflow:
         
         # at this point we have officially transitioned from one step to the next
         # context has to be updated here to ensure state accuracy moving forward
-        self.context = Context([self.state.run_id, self.curr_step.step_id, -1], False, False, False, self.context.cache)
+        self.context = Context(self.name, [self.state.run_id, self.curr_step.step_id, -1], False, False, False, self.context.cache)
 
         log.bind(
             component="workflow_service",
@@ -347,7 +354,15 @@ class Workflow:
             if step.step_name == step_name:
                 step_already_exists = True
                 break
-        print(f"!!!!!!!!!!!!!!!! -- step_already_exists: {step_already_exists}, step_name: {step_name}")
+        
+        log.bind(
+            component="workflow_service",
+            workflow=self.name,
+            run_id=self.state.run_id,
+            step_name=step_name,
+            context=self.context,
+        ).debug(f"-- step_already_exists={step_already_exists}, step_name: {step_name} --")
+
         if step_already_exists:
             # We only execute it if it's the current step and needs a retry.
             # Otherwise, we are either waiting for it or it's already done.
@@ -364,13 +379,10 @@ class Workflow:
     
     def _enqueue_execution(self, cloud: Cloud, db: DBInterface, name: str, task: str, task_id: int = -1):
         assert self.curr_step, "There should be a curr_step populated for the Workflow object when _enqueue_execution() is called."
-        # the task and the workflow name needs to be added to the context at this point
-        # TODO
-        #   - 'workflow' should probably just be a field in the Context object
-
         # task_id has to be added here in order to handle parallel tasks
         self.context.ids[2] = task_id
-        msg_body = json.dumps({"workflow": name, "execute": task} | self.context.to_dict())
+        # the task needs to be added to the context at this point
+        msg_body = json.dumps({"task_key": task} | self.context.to_dict())
         log.bind(
             component="workflow_service",
             workflow_name=name,
@@ -419,14 +431,20 @@ class Workflow:
 
         Args:
             task: The name of the task to execute. This must correspond to a key
-                  in the executor's directory_map.
+                  in the executor's task_map.
 
         Returns:
             The Workflow instance to allow for method chaining, or a WaitStatus
             object if the workflow should pause.
         """
 
-        print(f"!!!!!!!!!!!! -- step_cnt: {self.step_cnt}, step_idx: {self.step_idx}")
+        log.bind(
+            component="workflow_service",
+            workflow=self.name,
+            run_id=self.state.run_id,
+            context=self.context.to_dict(),
+            state=self.state.to_dict()
+        ).debug(f"-- step_cnt: {self.step_cnt}, step_idx: {self.step_idx} --")
         if self.step_cnt < self.step_idx:
             return self._next(step_name, task)
 
@@ -439,10 +457,6 @@ class Workflow:
         elif self.curr_step and self.curr_step.success:
             return self._next(step_name, task)
 
-        # when we determine the step doesn't need to be executed then the db just needs to be updated
-        print(f"DEBUG: Before _update_db in call() - type(self.state.steps): {type(self.state.steps)}")
-        if self.state.steps:
-            print(f"DEBUG: Before _update_db in call() - type(self.state.steps[0]): {type(self.state.steps[0])}")
         self._update_db(self.db)
 
         log.bind(
@@ -451,7 +465,7 @@ class Workflow:
             run_id=self.state.run_id,
             step_name=step_name
         ).info("-- Returning WaitStatus from call() execution. --")
-        return WaitStatus(self.status, self.state)
+        return WaitStatus(self.state.status, self.state)
 
 
     def parallel_call(self, step_name: str, *tasks: tuple[str,int]) -> Self | WaitStatus:
@@ -464,7 +478,7 @@ class Workflow:
 
         Args:
             *tasks: A list of task names to execute in parallel. Each name must
-                    correspond to a key in the executor's directory_map.
+                    correspond to a key in the executor's task_map.
 
         Returns:
             The Workflow instance to allow for method chaining, or a WaitStatus
@@ -476,19 +490,12 @@ class Workflow:
         if self._determine_step_execution(StepType.Parallel, step_name, *tasks):
             assert isinstance(self.curr_step, ParallelStep)
             
-            for t in tasks:
-                task_key = t[0]
-                task_id = None
-
-                # TODO
-                #   - implement a better search algorithm to grab the task_id
-                #       - or redesign this so that the task id is updated in the context
-                #       - or a context object is passed to _enqueue_execution
-                for task in self.curr_step.tasks: 
-                    if task.task_key == task_key:
-                        task_id = task.task_id
-                        break
-                assert task_id != None, f"task_id was not found in parallel_call - tasks(arg): {tasks}, curr_step.tasks: {[task.task_key for task in self.curr_step.tasks]}"
+            # task_ids are generated not provided, so we have to match up the task_ids with each task_key
+            task_lookup = {task.task_key: task.task_id for task in self.curr_step.tasks}
+            for task_key, _ in tasks:
+                task_id = task_lookup.get(task_key)
+                assert task_id is not None, f"task_id was not found in parallel_call - task_key: {task_key}, task_lookup: {task_lookup}"
+                # enqueue each task individually
                 self._enqueue_execution(self.cloud, self.db, self.name, task_key, task_id)
         
         elif self.curr_step and self.curr_step.success:
@@ -507,7 +514,7 @@ class Workflow:
             run_id=self.state.run_id,
             step_name=step_name
         ).info("-- Returning WaitStatus from parallel_call() execution. --")
-        return WaitStatus(self.status, self.state)
+        return WaitStatus(self.state.status, self.state)
 
 
     def done(self):
@@ -522,8 +529,8 @@ class Workflow:
         """
         status_code = 200
 
-        if self.status is Status.InProcess:
-            self.status = Status.Completed
+        if self.state.status is Status.InProcess:
+            self.state.status = Status.Completed
             log.bind(
                 component="workflow_service",
                 workflow_name=self.name,
@@ -604,9 +611,9 @@ def InitWorkflow(cloud: Cloud, name: str, db: DB, context: str):
     log.bind(
         component="workflow_service", 
         workflow_name=name,
-        context=context
-    ).info("-- Workflow initialized. --")
-    print("!!!!!!! - workflow: ", WORKFLOW)
+        context=context,
+        wf=WORKFLOW
+    ).info("-- Workflow Initialized. --")
 
 @wf_interface
 def SetCustomExecutorQueue(executor_queue_function: Callable):
@@ -619,9 +626,9 @@ def SetCustomExecutorQueue(executor_queue_function: Callable):
 def Call(step_name: str, task: str, retries: int = 0) -> None:
     '''
     Call a task in a workflow.
-    A task string must match a key in the directory_map located in tasks.py as part of the executor function.
+    A task string must match a key in the task_map located in tasks.py as part of the executor function.
     '''
-    print(f"!!!!!!!! -- calling task `{task}`")
+    log.info(f"-- Calling task `{task}` --")
     global WORKFLOW
     assert WORKFLOW is not None
     WORKFLOW = WORKFLOW.call(step_name, task, retries)
@@ -632,8 +639,9 @@ def ParallelCall(step_name: str, *tasks: tuple[str, int]) -> None:
     '''
     Call a group of tasks that should run in parallel.
     The `tasks` argument are tuples containing task key's and number of retries. 
-    Task key must correspond to a key in the directory_map located in tasks.py as part of the executor function.
+    Task key must correspond to a key in the task_map located in tasks.py as part of the executor function.
     '''
+    log.info(f"-- Calling parallel tasks `{[task for task, _ in tasks]}` --")
     global WORKFLOW
     assert WORKFLOW is not None
     WORKFLOW = WORKFLOW.parallel_call(step_name, *tasks)

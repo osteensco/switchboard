@@ -17,7 +17,7 @@ class DBMockInterface(DBInterface):
             state = self.all_states[id]
             return state
         except KeyError:
-            print(f"key `{id}` not found! all_states: {self.all_states}")
+            print(f"!!!!!! key `{id}` not found! all_states: {self.all_states}")
             return None
 
     def write(self, state):

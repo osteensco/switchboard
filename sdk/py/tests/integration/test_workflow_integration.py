@@ -6,7 +6,7 @@ from switchboard.response import Trigger
 from switchboard.workflow import GetCache, InitWorkflow, Call, Done, ParallelCall, SetCustomExecutorQueue, Workflow
 from switchboard.db import DB
 from switchboard.executor import switchboard_execute
-from .tasks import directory_map, mock_invocation_queue
+from .tasks import task_map, mock_invocation_queue
 from .db import DBMockInterface
 
 
@@ -66,12 +66,12 @@ def test_endtoend_integration():
         mock_invocation_queue.set_push_function(push_to_workflow_queue)
 
         cntxt = json.loads(context)
-        switchboard_execute(Cloud.CUSTOM, db.interface, cntxt, directory_map, custom_invocation_queue=push_to_workflow_queue)
+        switchboard_execute(Cloud.CUSTOM, db.interface, cntxt, task_map, custom_invocation_queue=push_to_workflow_queue)
 
 
     # 1. Trigger the start of the workflow
     # The trigger sends the initial message to the workflow_queue
-    Trigger(Cloud.CUSTOM, db.interface, "my_workflow", custom_queue_push=push_to_workflow_queue)
+    Trigger(Cloud.CUSTOM, db.interface, "test_workflow", custom_queue_push=push_to_workflow_queue)
     assert len(workflow_queue) == 1
     assert len(executor_queue) == 0
 

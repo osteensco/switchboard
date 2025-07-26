@@ -12,4 +12,7 @@
  - [ ] consolidate into a single log group to ensure logs are coherent across the various switchboard componenets
     - the focus here is the developer experience trying to parse logs and debug pipelines
 
+ - [ ] If a user creates a custom DBInterface, this would need to be included in the workflow and executor functions.
+    - This means that a custom DBInterface should probably be added in a separate .py file and imported in both workflow and executor function files.
+    - Need to account for this in documentation and the cli tool's deployer.
 

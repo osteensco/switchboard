@@ -1,5 +1,4 @@
-import json
-from switchboard.schemas import Cloud, Context, ContextFromDict
+from switchboard.schemas import Cloud, Context
 from switchboard.schemas import Task
 from switchboard.response import Response
 from .db import DBMockInterface
@@ -115,7 +114,7 @@ def endstep(context: Context):
 
 
 
-directory_map = {
+task_map = {
     "my_task": Task(name="my_task", execute=my_task),
     "my_other_task": Task(name="my_other_task", execute=my_other_task),
     "final_task": Task(name="final_task", execute=final_task),
