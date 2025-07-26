@@ -4,11 +4,13 @@
 
  - [x] reevaluate chosen names (i.e. directory_map, Response, Invoke, etc)
 
- - [x] add status and current step to SwitchboardState schema
+ - [x] add status to SwitchboardState schema
 
  - [x] add retry argument to Call and ParallelCall
 
  - [ ] add additional libraries to enhance testing (moto, coverage)
+
+ - [ ] add docker containers to test example locally
 
  - [x] address TODO notes throughout SDK
 
