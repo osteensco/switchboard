@@ -18,7 +18,6 @@ from .logging_config import log
 def push_to_executor(cloud: Cloud, db: DBInterface, name: str, body: str, custom_execution_queue: Callable | None = None) -> dict:
 
     ep = db.get_endpoint(name, SwitchboardComponent.ExecutorQueue)
-    print(f"!!!!!! Executor endpoint: '{ep}'")
 
     response = QueuePush(cloud, ep, body, custom_execution_queue)
     return response

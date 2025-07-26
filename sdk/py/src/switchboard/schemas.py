@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from typing import Callable
 
 from .enums import (
@@ -31,7 +31,7 @@ class Step:
     retries: int = 0
 
     def to_dict(self):
-        return self.__dict__
+        return asdict(self)
 
 
 @dataclass
@@ -45,7 +45,7 @@ class ParallelStep:
 
     def to_dict(self):
         tasks = [task.to_dict() for task in self.tasks]
-        d = self.__dict__
+        d = asdict(self)
         d["tasks"] = tasks
         return d
 
@@ -61,7 +61,7 @@ class State:
 
     def to_dict(self):
         steps = [step.to_dict() for step in self.steps]
-        d = self.__dict__
+        d = asdict(self)
         d["steps"] = steps
         return d
 
@@ -108,7 +108,7 @@ class Context:
     cache: dict # cache is used to add variables to the State cache which can be defined in the switchboard response object body.
 
     def to_dict(self):
-        d = self.__dict__
+        d = asdict(self)
         d["ids"] = [int(i) for i in d["ids"]]
         return d
 

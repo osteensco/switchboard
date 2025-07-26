@@ -12,7 +12,7 @@
 
  - [x] address TODO notes throughout SDK
 
- - [ ] convert print statements to log statements
+ - [x] convert print statements to log statements
 
  - [ ] Potential out-of-the-box tasks switchboard should provide
    - [ ] call http endpoint

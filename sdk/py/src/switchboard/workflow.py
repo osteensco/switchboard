@@ -27,7 +27,9 @@ class WaitStatus:
         return self
 
     def done(self) -> int:
-        print("!!!!!!!!! WaitStatus done called")
+        log.bind(
+            workflow=self.state.name
+        ).info("-- WaitStatus done called --")
         return 200
 
 
@@ -131,14 +133,27 @@ class Workflow:
 
         state = db.read(self.name, self.context.ids[0])
         if state:
-            print(f"!!!!!! found state={state}")
             assert isinstance(state, State) 
+            log.bind(
+                workflow=state.name,
+                state=state.to_dict()
+            ).debug("-- Existing State found --")
         else:
-            print(f"!!!!! could not find name={self.name}, run_id={self.context.ids[0]}, state={state}")
+            log.bind(
+                workflow=self.name,
+                state=state
+            ).debug(f"-- Could not find state with name={self.name}, run_id={self.context.ids[0]} --")
+
             # handle new state creation (new workflow run)
             id = self._generate_id(db)
             state = State(self.name, id, [], {}, Status.InProcess)
             self.context.ids[0] = id 
+
+            log.bind(
+                workflow=self.name,
+                state=state
+            ).debug(f"-- Created new State object with name={self.name}, run_id={id} --")
+
             return state
         
         # if we already have an initialized state it should never be emtpy
@@ -339,7 +354,15 @@ class Workflow:
             if step.step_name == step_name:
                 step_already_exists = True
                 break
-        print(f"!!!!!!!!!!!!!!!! -- step_already_exists: {step_already_exists}, step_name: {step_name}")
+        
+        log.bind(
+            component="workflow_service",
+            workflow=self.name,
+            run_id=self.state.run_id,
+            step_name=step_name,
+            context=self.context,
+        ).debug(f"-- step_already_exists={step_already_exists}, step_name: {step_name} --")
+
         if step_already_exists:
             # We only execute it if it's the current step and needs a retry.
             # Otherwise, we are either waiting for it or it's already done.
@@ -415,7 +438,13 @@ class Workflow:
             object if the workflow should pause.
         """
 
-        print(f"!!!!!!!!!!!! -- step_cnt: {self.step_cnt}, step_idx: {self.step_idx}")
+        log.bind(
+            component="workflow_service",
+            workflow=self.name,
+            run_id=self.state.run_id,
+            context=self.context.to_dict(),
+            state=self.state.to_dict()
+        ).debug(f"-- step_cnt: {self.step_cnt}, step_idx: {self.step_idx} --")
         if self.step_cnt < self.step_idx:
             return self._next(step_name, task)
 
@@ -582,9 +611,9 @@ def InitWorkflow(cloud: Cloud, name: str, db: DB, context: str):
     log.bind(
         component="workflow_service", 
         workflow_name=name,
-        context=context
-    ).info("-- Workflow initialized. --")
-    print("!!!!!!! - workflow: ", WORKFLOW)
+        context=context,
+        wf=WORKFLOW
+    ).info("-- Workflow Initialized. --")
 
 @wf_interface
 def SetCustomExecutorQueue(executor_queue_function: Callable):
@@ -599,7 +628,7 @@ def Call(step_name: str, task: str, retries: int = 0) -> None:
     Call a task in a workflow.
     A task string must match a key in the task_map located in tasks.py as part of the executor function.
     '''
-    print(f"!!!!!!!! -- calling task `{task}`")
+    log.info(f"-- Calling task `{task}` --")
     global WORKFLOW
     assert WORKFLOW is not None
     WORKFLOW = WORKFLOW.call(step_name, task, retries)
@@ -612,6 +641,7 @@ def ParallelCall(step_name: str, *tasks: tuple[str, int]) -> None:
     The `tasks` argument are tuples containing task key's and number of retries. 
     Task key must correspond to a key in the task_map located in tasks.py as part of the executor function.
     '''
+    log.info(f"-- Calling parallel tasks `{[task for task, _ in tasks]}` --")
     global WORKFLOW
     assert WORKFLOW is not None
     WORKFLOW = WORKFLOW.parallel_call(step_name, *tasks)

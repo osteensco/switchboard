@@ -111,14 +111,13 @@ class AWS_DataInterface(DBInterface):
         try:
             response = tbl.get_item(Key={"name": name, "run_id": id})
         except ClientError as err:
-            raise Exception(
-                "%s - Couldn't get state for run_id %s from table %s. %s: %s",
-                name,
-                id,
-                tbl.table_name,
-                err.response["Error"]["Code"],
-                err.response["Error"]["Message"],
-            )
+            log.bind(
+                component="db_service",
+                workflow_name=name,
+                run_id=id
+            ).error(f"Error in {name} - Couldn't get state for run_id {id} from table {tbl.table_name} - {err.response["Error"]["Code"]}: {err.response["Error"]["Message"]}")
+            raise 
+
         else:
             state = NewState(response["Item"])
         finally:
@@ -134,22 +133,30 @@ class AWS_DataInterface(DBInterface):
                 ExpressionAttributeValues={":steps": state_dict["steps"], ":cache": state_dict["cache"]},
             )
         except ClientError as err:
-           raise Exception(
-                "%s - Couldn't update state for run_id %s to table %s. %s: %s",
-                state.name,
-                state.run_id,
-                tbl.table_name,
-                err.response["Error"]["Code"],
-                err.response["Error"]["Message"],
-            )
+            log.bind(
+                component="db_service",
+                workflow_name=state.name,
+                run_id=state.run_id,
+                state=state_dict
+            ).error(f"Error in {state.name} - Couldn't update state for run_id {state.run_id} to table {tbl.table_name}. {err.response["Error"]["Code"]}: {err.response["Error"]["Message"]}")
+            raise
+
         else:
             assert response['ResponseMetadata']['HTTPStatusCode'] == 200
             
 
     def increment_id(self, name: str):
         tbl = self.get_table()
-        print(f"DEBUG: Type of name: {type(name)}, value: {name}")
-        print(f"DEBUG: Type of table name: {type(tbl.table_name)}, value: {tbl.table_name}")
+
+        log.bind(
+            component="db_service",
+            workflow="name"
+        ).debug(f"DEBUG: Type of name: {type(name)}, value: {name}")
+        log.bind(
+            component="db_service",
+            workflow="name"
+        ).debug(f"DEBUG: Type of table name: {type(tbl.table_name)}, value: {tbl.table_name}")
+
         response = tbl.query(
             KeyConditionExpression=Key('name').eq(name),
             ScanIndexForward=False,  
@@ -173,21 +180,23 @@ class AWS_DataInterface(DBInterface):
         tbl = self.get_table(TableName.SwitchboardResources)
         try:
             resp = tbl.get_item(Key={"component": component.value, "name": name})
-            print(f"!!!!!! Retrieved item '{resp}'")
         except ClientError as err:
-            print(f"!!!!!! Could not get resource for name={name}, component={component}")
-            raise Exception(
-                "%s - Couldn't get %s endpoint for %s from table %s. %s: %s",
-                name,
-                component,
-                tbl.table_name,
-                err.response["Error"]["Code"],
-                err.response["Error"]["Message"],
-            )
+            log.bind(
+                component="db_service",
+                workflow_name=name,
+                switchboard_component=component
+            ).error(f" Error - Couldn't get {name} information for {component} from table {tbl.table_name} - {err.response["Error"]["Code"]}: {err.response["Error"]["Message"]}")
+            raise 
 
         item = resp.get("Item")
         if not item:
-            raise Exception(f"No entry found for name={name}, component={component} in {tbl.table_name}")
+            log.bind(
+                component="db_service",
+                workflow_name=name,
+                switchboard_component=component
+            ).error(f"No entry found for name={name}, component={component} in {tbl.table_name}")
+            raise 
+
         resource = Resource(**item)
         log.bind(
             component="db_service",

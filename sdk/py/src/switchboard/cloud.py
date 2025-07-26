@@ -1,5 +1,7 @@
 import boto3
 
+from switchboard.logging_config import log
+
 
 
 
@@ -14,7 +16,9 @@ def AWS_db_connect():
     Returns a dynamodb service resource - https://boto3.amazonaws.com/v1/documentation/api/latest/guide/resources.html#guide-resources
 
     '''
-    return boto3.resource('dynamodb', region_name='us-east-1')
+    # TODO remove hardcoded region_name
+    # return boto3.resource('dynamodb', region_name='us-east-1')
+    return boto3.resource('dynamodb')
 
 
 def GCP_db_connect():
@@ -34,8 +38,12 @@ def AWS_message_push(endpoint: str, msg: str) -> dict:
             MessageBody=msg
         )
     except Exception as e:
-        print(f"!!!!!! Error pushing message to sqs: {e}")
-        raise e
+        log.bind(
+            component="db_service",
+            endpoint=endpoint,
+            msg=msg
+        ).error(e)
+        raise 
     finally:
         return response
 
