@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/osteensco/switchboard/cli/tui"
 	"github.com/spf13/cobra"
 )
 
@@ -16,6 +17,13 @@ var (
 		Long: `Switchboard is a serverless, event-driven, orchestration framework. 
 This CLI tool allows you to create, deploy, and monitor your workflows made with Switchboard.
 `,
+		Run: func(cmd *cobra.Command, args []string) {
+			if len(args) == 0 {
+				tui.Run()
+				return
+			}
+			_ = cmd.Help()
+		},
 	}
 )
 
