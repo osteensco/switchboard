@@ -63,6 +63,7 @@ class State:
         steps = [step.to_dict() for step in self.steps]
         d = asdict(self)
         d["steps"] = steps
+        d["status"] = self.status.value
         return d
 
 
@@ -77,7 +78,7 @@ def NewState(data: dict) -> State:
             deserialized_steps.append(ParallelStep(**{**step_data, "tasks": deserialized_tasks}))
         else: # It's a Step
             deserialized_steps.append(Step(**step_data))
-    return State(data["name"], int(data["run_id"]), deserialized_steps, data["cache"], data["status"])
+    return State(data["name"], int(data["run_id"]), deserialized_steps, data["cache"], Status(data["status"]))
 
 
 

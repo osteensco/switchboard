@@ -118,11 +118,9 @@ class AWS_DataInterface(DBInterface):
                 run_id=id
             ).error(f"Error in {name} - Couldn't get state for run_id {id} from table {tbl.table_name} - {err.response["Error"]["Code"]}: {err.response["Error"]["Message"]}")
             raise 
-
-        else:
-            state = NewState(response["Item"])
-        finally:
-            return state
+        state = NewState(response["Item"])
+        print(f"!!!!!!!!! read NewState: {state}")
+        return state
 
     def write(self, state: State):
         tbl = self.get_table()
@@ -131,8 +129,9 @@ class AWS_DataInterface(DBInterface):
         try:
             response = tbl.update_item(
                 Key={"name": state_dict["name"], "run_id": state_dict["run_id"]},
-                UpdateExpression="set steps=:steps, cache=:cache",
-                ExpressionAttributeValues={":steps": state_dict["steps"], ":cache": state_dict["cache"]},
+                UpdateExpression="set steps=:steps, cache=:cache, #stat=:status",
+                ExpressionAttributeNames={"#stat": "status"},
+                ExpressionAttributeValues={":steps": state_dict["steps"], ":cache": state_dict["cache"], ":status": state_dict["status"]},
             )
         except ClientError as err:
             log.bind(
