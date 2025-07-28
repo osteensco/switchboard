@@ -105,11 +105,12 @@ class AWS_DataInterface(DBInterface):
         ```
 
     '''
-    def read(self, name: str, id: int):
+    def read(self, name: str, id: int) -> State | None:
         tbl = self.get_table()
         state = None
         try:
             response = tbl.get_item(Key={"name": name, "run_id": id})
+            print(f"!!!!!!!! read response: {response}")
         except ClientError as err:
             log.bind(
                 component="db_service",
@@ -126,6 +127,7 @@ class AWS_DataInterface(DBInterface):
     def write(self, state: State):
         tbl = self.get_table()
         state_dict = state.to_dict()
+        print(f"!!!!!!! write state: {state_dict}")
         try:
             response = tbl.update_item(
                 Key={"name": state_dict["name"], "run_id": state_dict["run_id"]},
@@ -142,10 +144,11 @@ class AWS_DataInterface(DBInterface):
             raise
 
         else:
+            print(f"!!!!!!! write response: {response}")
             assert response['ResponseMetadata']['HTTPStatusCode'] == 200
             
 
-    def increment_id(self, name: str):
+    def increment_id(self, name: str) -> int:
         tbl = self.get_table()
 
         log.bind(

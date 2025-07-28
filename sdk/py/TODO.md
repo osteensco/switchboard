@@ -8,7 +8,7 @@
 
  - [x] add retry argument to Call and ParallelCall
 
- - [ ] add additional libraries to enhance testing (moto, coverage)
+ - [x] add additional libraries to enhance testing (moto, coverage)
 
  - [ ] add docker containers to test example locally
 

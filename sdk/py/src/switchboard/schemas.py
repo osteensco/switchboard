@@ -117,6 +117,7 @@ class Context:
 # dataclass for SwitchboardResources table
 @dataclass
 class Resource:
+    name: str # name of the workflow
     component: SwitchboardComponent
     url: str
     cloud: Cloud
