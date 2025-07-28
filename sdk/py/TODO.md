@@ -10,7 +10,7 @@
 
  - [x] add additional libraries to enhance testing (moto, coverage)
 
- - [ ] add docker containers to test example locally
+ - [ ] add docker containers to test example locally (not sure if actually needed)
 
  - [x] address TODO notes throughout SDK
 
@@ -23,4 +23,5 @@
    - [ ] trigger storage/DB operation (i.e. scheduled query or stored procedure)
    - [ ] trigger ML/Data Pipeline 
    - [ ] Event emitter/bus
+
 

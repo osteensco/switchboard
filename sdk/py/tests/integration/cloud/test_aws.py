@@ -73,6 +73,9 @@ def test_write_and_read(aws_interface):
     assert result.run_id == 1
     assert result.status == Status.InProcess
 
+def test_read_returns_none(aws_interface):
+    result = aws_interface.read("test_new_workflow",-1)
+    assert result is None
 
 def test_increment_id_empty_table(aws_interface):
     new_id = aws_interface.increment_id("workflow_x")

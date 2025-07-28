@@ -48,7 +48,7 @@ def test_InitWorkflow_for_new_run(mock_db):
     assert wf.WORKFLOW is not None
     assert wf.WORKFLOW.state.name == "test_workflow"
     assert wf.WORKFLOW.state.run_id == 123
-    db_mock.read.assert_called_once_with("test_workflow", -1)
+    db_mock.read.assert_not_called()
     db_mock.increment_id.assert_called_once_with("test_workflow")
 
 

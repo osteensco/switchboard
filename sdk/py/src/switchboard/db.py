@@ -116,10 +116,11 @@ class AWS_DataInterface(DBInterface):
                 component="db_service",
                 workflow_name=name,
                 run_id=id
-            ).error(f"Error in {name} - Couldn't get state for run_id {id} from table {tbl.table_name} - {err.response["Error"]["Code"]}: {err.response["Error"]["Message"]}")
+            ).error(f"""Error in {name} - Couldn't get state for run_id {id} from table {tbl.table_name} - {err.response["Error"]["Code"]}: {err.response["Error"]["Message"]}""")
             raise 
-        state = NewState(response["Item"])
-        print(f"!!!!!!!!! read NewState: {state}")
+        if "Item" in response:
+            state = NewState(response["Item"])
+            print(f"!!!!!!!!! read NewState: {state}")
         return state
 
     def write(self, state: State):
@@ -139,7 +140,7 @@ class AWS_DataInterface(DBInterface):
                 workflow_name=state.name,
                 run_id=state.run_id,
                 state=state_dict
-            ).error(f"Error in {state.name} - Couldn't update state for run_id {state.run_id} to table {tbl.table_name}. {err.response["Error"]["Code"]}: {err.response["Error"]["Message"]}")
+            ).error(f"""Error in {state.name} - Couldn't update state for run_id {state.run_id} to table {tbl.table_name}. {err.response["Error"]["Code"]}: {err.response["Error"]["Message"]}""")
             raise
 
         else:
@@ -187,7 +188,7 @@ class AWS_DataInterface(DBInterface):
                 component="db_service",
                 workflow_name=name,
                 switchboard_component=component
-            ).error(f" Error - Couldn't get {name} information for {component} from table {tbl.table_name} - {err.response["Error"]["Code"]}: {err.response["Error"]["Message"]}")
+            ).error(f""" Error - Couldn't get {name} information for {component} from table {tbl.table_name} - {err.response["Error"]["Code"]}: {err.response["Error"]["Message"]}""")
             raise 
 
         item = resp.get("Item")

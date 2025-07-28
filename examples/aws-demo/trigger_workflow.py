@@ -22,8 +22,7 @@ def trigger_workflow(invocation_queue_url):
         "completed": True,
         "success": True,
         "cache": {},
-        "workflow": "my_workflow",
-        "execute": ""
+        "workflow": "myworkflow",
     }
     sqs.send_message(
         QueueUrl=invocation_queue_url,

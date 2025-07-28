@@ -17,12 +17,18 @@ items = [
     {
         "component": {"S": "ExecutorQueue"},
         "name": {"S": workflow_name},
-        "url": {"S": executor_queue}
+        "url": {"S": executor_queue},
+        "cloud": {"S": "AWS"},
+        "resource": {"S": "SQS"},
+        "resource_type": {"S": "QUEUE"}
     },
     {
         "component": {"S": "InvocationQueue"},
         "name": {"S": workflow_name},
-        "url": {"S": invocation_queue}
+        "url": {"S": invocation_queue},
+        "cloud": {"S": "AWS"},
+        "resource": {"S": "SQS"},
+        "resource_type": {"S": "QUEUE"}
     }
 ]
 
