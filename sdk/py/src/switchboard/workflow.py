@@ -130,8 +130,13 @@ class Workflow:
         '''
         Get the state from the database and update it based on the current context.
         '''
+        
+        run_id = self.context.ids[0]
+        state = None
 
-        state = db.read(self.name, self.context.ids[0])
+        if run_id >= 0:
+            state = db.read(self.name, run_id)
+
         if state:
             assert isinstance(state, State) 
             log.bind(

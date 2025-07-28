@@ -8,3 +8,4 @@ __pycache__/
 **/lambda_package.zip
 **/dist
 **/output.json
+**/.coverage

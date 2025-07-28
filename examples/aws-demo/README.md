@@ -7,6 +7,7 @@ This is a demo of Switchboard running on AWS.
 - Python 3.11+
 - Terraform
 - An AWS account with credentials configured
+- Be sure your working direcctory is examples/aws-demo
 
 ## Setup for Administrators
 
@@ -14,7 +15,8 @@ Before a developer can deploy the demo, an administrator must create an IAM role
 
 1.  **Create the IAM Policy:**
 
-    Create an IAM policy using the contents of the `iam_policy.json` file in this directory. You can do this through the AWS Management Console or with the AWS CLI:
+    Create an IAM policy using the contents of the `iam_policy.json` file in this directory. 
+    You can do this through the AWS Management Console or with the AWS CLI:
 
     ```bash
     aws iam create-policy --policy-name switchboard-demo-policy --policy-document file://iam_policy.json

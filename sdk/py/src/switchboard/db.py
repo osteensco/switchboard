@@ -105,32 +105,34 @@ class AWS_DataInterface(DBInterface):
         ```
 
     '''
-    def read(self, name: str, id: int):
+    def read(self, name: str, id: int) -> State | None:
         tbl = self.get_table()
         state = None
         try:
             response = tbl.get_item(Key={"name": name, "run_id": id})
+            print(f"!!!!!!!! read response: {response}")
         except ClientError as err:
             log.bind(
                 component="db_service",
                 workflow_name=name,
                 run_id=id
-            ).error(f"Error in {name} - Couldn't get state for run_id {id} from table {tbl.table_name} - {err.response["Error"]["Code"]}: {err.response["Error"]["Message"]}")
+            ).error(f"""Error in {name} - Couldn't get state for run_id {id} from table {tbl.table_name} - {err.response["Error"]["Code"]}: {err.response["Error"]["Message"]}""")
             raise 
-
-        else:
+        if "Item" in response:
             state = NewState(response["Item"])
-        finally:
-            return state
+            print(f"!!!!!!!!! read NewState: {state}")
+        return state
 
     def write(self, state: State):
         tbl = self.get_table()
         state_dict = state.to_dict()
+        print(f"!!!!!!! write state: {state_dict}")
         try:
             response = tbl.update_item(
                 Key={"name": state_dict["name"], "run_id": state_dict["run_id"]},
-                UpdateExpression="set steps=:steps, cache=:cache",
-                ExpressionAttributeValues={":steps": state_dict["steps"], ":cache": state_dict["cache"]},
+                UpdateExpression="set steps=:steps, cache=:cache, #stat=:status",
+                ExpressionAttributeNames={"#stat": "status"},
+                ExpressionAttributeValues={":steps": state_dict["steps"], ":cache": state_dict["cache"], ":status": state_dict["status"]},
             )
         except ClientError as err:
             log.bind(
@@ -138,14 +140,15 @@ class AWS_DataInterface(DBInterface):
                 workflow_name=state.name,
                 run_id=state.run_id,
                 state=state_dict
-            ).error(f"Error in {state.name} - Couldn't update state for run_id {state.run_id} to table {tbl.table_name}. {err.response["Error"]["Code"]}: {err.response["Error"]["Message"]}")
+            ).error(f"""Error in {state.name} - Couldn't update state for run_id {state.run_id} to table {tbl.table_name}. {err.response["Error"]["Code"]}: {err.response["Error"]["Message"]}""")
             raise
 
         else:
+            print(f"!!!!!!! write response: {response}")
             assert response['ResponseMetadata']['HTTPStatusCode'] == 200
             
 
-    def increment_id(self, name: str):
+    def increment_id(self, name: str) -> int:
         tbl = self.get_table()
 
         log.bind(
@@ -185,7 +188,7 @@ class AWS_DataInterface(DBInterface):
                 component="db_service",
                 workflow_name=name,
                 switchboard_component=component
-            ).error(f" Error - Couldn't get {name} information for {component} from table {tbl.table_name} - {err.response["Error"]["Code"]}: {err.response["Error"]["Message"]}")
+            ).error(f""" Error - Couldn't get {name} information for {component} from table {tbl.table_name} - {err.response["Error"]["Code"]}: {err.response["Error"]["Message"]}""")
             raise 
 
         item = resp.get("Item")
