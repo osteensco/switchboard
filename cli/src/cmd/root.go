@@ -10,6 +10,8 @@ import (
 
 var (
 	// add other flags and stuff here
+	cloud string
+	lang  string
 
 	rootCmd = &cobra.Command{
 		Use:   "sb",
@@ -37,5 +39,9 @@ func Execute() {
 // each cmd.go file should have it's own init function instead of living here
 func init() {
 	// add config, commands, flags, defaults, etc here
+	New.Flags().StringVarP(&cloud, "cloud", "c", "", "Select Cloud provider ('aws', 'gcp', or 'azure')")
+	New.Flags().StringVarP(&lang, "lang", "l", "", "Select project's programming language ('py', 'ts', or 'go')")
+
+	rootCmd.AddCommand(New)
 	return
 }

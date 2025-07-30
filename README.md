@@ -30,6 +30,7 @@ Switchboard is built to be cloud-agnostic and provides managed service abstracti
 
 *   **Multi-Language Support:** A Python SDK is currently available. Go and TypeScript SDKs are under development.
 *   **Orchestration-as-Code:** Define your workflows using your preferred language. No complex YAML or JSON configurations, just logic flow and simple functions from the SDK.
+*   **Robust CLI Tool:** Run commands with the CLI tool or use the TUI to add or update your workflows, view logs, manage components, and discover resources - all in one place.
 *   **Cloud-Agnostic by Design:** The Switchboard architecture is designed with pluggable interfaces for any cloud environment, providing robust defaults while empowering custom implementations.
 *   **Prefabricated Cloud Components:** Focus on business and orchestration logic instead of cloud infrastructure and plumbing.
 *   **Handles Long-Running Jobs:** Switchboard seamlessly manages the state of long-running tasks without requiring you to build complex polling or callback mechanisms.
@@ -74,7 +75,9 @@ Create a `tasks.py` file that maps task names to functions. These are your units
 
 from switchboard import Task, Response, Cloud, Context
 
-# You will need to update the context and send a response wherever you run your business logic in order to update the workflow state
+# In order to update the workflow state
+# Wherever you place your business logic,
+# You will need to update the context and send a response
 def generic_response(context: Context):
     # initialize the db connection
     db = DB(Cloud.AWS)
@@ -135,7 +138,7 @@ def workflow_handler(context):
     # Initialize the database connection
     db = DB(Cloud.AWS)
 
-    # Initialize the workflow with thecontext
+    # Initialize the workflow with the context
     InitWorkflow(
         cloud=Cloud.AWS,
         name="my_first_workflow",
