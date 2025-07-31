@@ -169,6 +169,8 @@ Switchboard is currently in active development. The Python SDK is the most matur
 
 Roadmap inclues:
 * [ ]   **CLI Tool:** For easy setup, management, and deployment of Switchboard resources.
+    * [ ] Commands (see TODO in cli)
+    * [ ] Rich and interactive TUI
 * [ ]   **SDKs:** Bringing multi-language support to more developers.
     * [x] Python
     * [ ] Golang
