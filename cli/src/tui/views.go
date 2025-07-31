@@ -11,7 +11,14 @@ func renderMainView(m model) string {
 		Align(lg.Center).
 		Width(m.width).
 		Foreground(lg.Color("250")).
-		Render("Switchboard")
+		Render(`
+ ◌  ◌  ● 
+ ◌  ●  ◌ 
+ ◌  ●  ◌ 
+ ●  ◌  ◌ 
+
+s w i t c h b o a r d
+`)
 
 	const maxCols = 3
 
