@@ -10,9 +10,15 @@ import (
 
 var (
 	// add other flags and stuff here
-	workflow_name string
+
+	// new command
+	workflow_name string // logs command
 	cloud         string
 	lang          string
+	// add command
+	trigger string
+	// logs command
+	logQuery string
 
 	rootCmd = &cobra.Command{
 		Use:   "sb",
@@ -44,6 +50,15 @@ func init() {
 	New.Flags().StringVarP(&cloud, "cloud", "c", "", "Select Cloud provider ('aws', 'gcp', or 'azure')")
 	New.Flags().StringVarP(&lang, "lang", "l", "", "Select project's programming language ('py', 'ts', or 'go')")
 
+	Logs.Flags().StringVarP(&workflow_name, "name", "n", "", "Provide the name for your workflow.")
+	Logs.Flags().StringVarP(&logQuery, "query", "q", "", "Provide the query for the logs.")
+
 	rootCmd.AddCommand(New)
+	rootCmd.AddCommand(Add)
+	rootCmd.AddCommand(Package)
+	rootCmd.AddCommand(Deploy)
+	rootCmd.AddCommand(Teardown)
+	rootCmd.AddCommand(Logs)
+
 	return
 }

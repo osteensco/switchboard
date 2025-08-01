@@ -38,10 +38,11 @@ This document outlines the plan for building the `switchboard` CLI tool. The goa
             - Read project configuration (e.g., `project_name`, `environment`) from a config file (e.g., `switchboard.toml`).
             - Run `terraform init` and `terraform apply` in the `terraform/` directory, passing in the necessary variables.
 
-    - [ ] **`switchboard destroy`**
+    - [ ] **`switchboard teardown`**
         - **Purpose:** To abstract `terraform destroy` and tear down all cloud resources.
         - **Actions:**
             - Run `terraform destroy` in the `terraform/` directory.
+            - Remove everything created with the `sb package` command.
 
  - [ ] **Logs Viewer**
     - [ ] **`switchboard logs <workflow name> <query string>`**

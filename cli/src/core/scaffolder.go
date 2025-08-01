@@ -27,3 +27,7 @@ func InitProject(name string, cloud string, lang string) {
 		return
 	}
 }
+
+func AddTrigger(trigger string) {
+	fmt.Println("Trigger added: " + trigger)
+}
