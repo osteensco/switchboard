@@ -16,6 +16,15 @@ var New = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		var err error
 
+		if workflow_name == "" {
+			var inputPrompt = "Provide a name for your workflow."
+			workflow_name, err = wizard.Input(inputPrompt, "myworkflow")
+			if err != nil {
+				fmt.Println(err)
+				os.Exit(1)
+			}
+		}
+
 		if cloud == "" {
 			var cloudOptions = []string{"aws", "azure", "gcp"}
 			var cloudTitle = "Choose a cloud provider"
@@ -37,6 +46,6 @@ var New = &cobra.Command{
 			}
 		}
 
-		core.InitProject(cloud, lang)
+		core.InitProject(workflow_name, cloud, lang)
 	},
 }

@@ -13,7 +13,7 @@ func (i item) Title() string       { return string(i) }
 func (i item) Description() string { return "" }
 func (i item) FilterValue() string { return string(i) }
 
-type model struct {
+type selectModel struct {
 	width    int
 	height   int
 	list     list.Model
@@ -22,21 +22,21 @@ type model struct {
 	done     bool
 }
 
-func initialModel(opts []string, title string) model {
+func initialSelectModel(opts []string, title string) selectModel {
 	items := make([]list.Item, len(opts))
 	for i, val := range opts {
 		items[i] = item(val)
 	}
 	l := list.New(items, list.NewDefaultDelegate(), 0, 0)
 	l.Title = title
-	return model{list: l}
+	return selectModel{list: l}
 }
 
-func (m model) Init() tea.Cmd {
+func (m selectModel) Init() tea.Cmd {
 	return nil
 }
 
-func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (m selectModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
 		m.width = msg.Width / 2
@@ -60,7 +60,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, cmd
 }
 
-func (m model) View() string {
+func (m selectModel) View() string {
 	if m.done {
 		return fmt.Sprintf("Selected: %s\n", m.selected)
 	}
@@ -68,10 +68,10 @@ func (m model) View() string {
 }
 
 func Select(opts []string, title string) (string, error) {
-	p := tea.NewProgram(initialModel(opts, title), tea.WithAltScreen())
+	p := tea.NewProgram(initialSelectModel(opts, title), tea.WithAltScreen())
 	finalModel, err := p.Run()
 	if err != nil {
 		return "", err
 	}
-	return finalModel.(model).selected, nil
+	return finalModel.(selectModel).selected, nil
 }
