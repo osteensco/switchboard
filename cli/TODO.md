@@ -4,7 +4,7 @@ This document outlines the plan for building the `switchboard` CLI tool. The goa
 
 ## Core Commands
  - [ ] **Scaffolder**
-    - [ ] **`switchboard new`**
+    - [x] **`switchboard new`**
         - **Purpose:** To scaffold a new Switchboard project directory.
         - **Actions:**
             - Generate the following files from templates:
@@ -21,6 +21,7 @@ This document outlines the plan for building the `switchboard` CLI tool. The goa
         - **Actions:**
             - Maps `trigger_type` to predefined terraform scripts
             - Adds these terraform scripts to project's terraform directory
+            - Adds the trigger component to the SwitchboardResources table if the db exists.
 
  - [ ] **Deployer**
     - [ ] **`switchboard package`**
@@ -37,6 +38,7 @@ This document outlines the plan for building the `switchboard` CLI tool. The goa
         - **Actions:**
             - Read project configuration (e.g., `project_name`, `environment`) from a config file (e.g., `switchboard.toml`).
             - Run `terraform init` and `terraform apply` in the `terraform/` directory, passing in the necessary variables.
+            - Populate the SwitchboardResources table with the deployed components.
 
     - [ ] **`switchboard teardown`**
         - **Purpose:** To abstract `terraform destroy` and tear down all cloud resources.
