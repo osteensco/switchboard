@@ -4,7 +4,7 @@ This document outlines the plan for building the `switchboard` CLI tool. The goa
 
 ## Core Commands
  - [ ] **Scaffolder**
-    - [ ] **`switchboard new`**
+    - [x] **`switchboard new`**
         - **Purpose:** To scaffold a new Switchboard project directory.
         - **Actions:**
             - Generate the following files from templates:

@@ -24,6 +24,9 @@ func TestInitProject(t *testing.T) {
 	defer os.Chdir(originalDir)
 	os.Chdir(tmpDir)
 
+	// TODO
+	// - create slice of structs and run test in a loop to test all combinations and edge cases
+
 	// Call InitProject with test data
 	projectName := "my-test-project"
 	cloud := "aws"
