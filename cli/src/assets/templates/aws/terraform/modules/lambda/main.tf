@@ -1,9 +1,10 @@
 resource "aws_lambda_function" "workflow_lambda" {
   function_name = "${var.project_name}-workflow-${var.environment}"
   role          = var.iam_role_arn
-  handler       = "src.workflow.workflow_handler"
-  runtime       = "python3.11"
-  filename      = "lambda_package.zip"
+  handler       = var.workflow_handler
+  runtime       = var.workflow_runtime
+  filename      = "../workflow/workflow_lambda.zip"
+  timeout       = 30
 
   environment {
     variables = {
@@ -12,15 +13,16 @@ resource "aws_lambda_function" "workflow_lambda" {
     }
   }
 
-  source_code_hash = filebase64sha256("lambda_package.zip")
+  source_code_hash = filebase64sha256("../workflow/workflow_lambda.zip")
 }
 
 resource "aws_lambda_function" "executor_lambda" {
   function_name = "${var.project_name}-executor-${var.environment}"
   role          = var.iam_role_arn
-  handler       = "src.executor.lambda_handler"
-  runtime       = "python3.11"
-  filename      = "lambda_package.zip"
+  handler       = var.executor_handler
+  runtime       = var.executor_runtime
+  filename      = "../executor/executor_lambda.zip"
+  timeout       = 30
 
   environment {
     variables = {
@@ -28,7 +30,7 @@ resource "aws_lambda_function" "executor_lambda" {
     }
   }
 
-  source_code_hash = filebase64sha256("lambda_package.zip")
+  source_code_hash = filebase64sha256("../executor/executor_lambda.zip")
 }
 
 resource "aws_lambda_event_source_mapping" "invocation_queue_mapping" {
@@ -39,4 +41,6 @@ resource "aws_lambda_event_source_mapping" "invocation_queue_mapping" {
 resource "aws_lambda_event_source_mapping" "executor_queue_mapping" {
   event_source_arn = var.executor_queue_arn
   function_name    = aws_lambda_function.executor_lambda.arn
+  batch_size       = 1
+  enabled          = true
 }

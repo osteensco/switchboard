@@ -29,7 +29,7 @@ def workflow_handler(event, context):
     # This loads the state for the current run or creates a new one.
     InitWorkflow(
         cloud=Cloud.AWS,
-        name="my_workflow",  # <-- TODO: Rename your workflow
+        name="myworkflow",  # <-- TODO: Autopopulate workflow name
         db=db,
         context=sb_context
     )
