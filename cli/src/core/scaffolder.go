@@ -51,10 +51,16 @@ func InitProject(name string, cloud string, lang string, progress chan<- Progres
 	if err := copyFiles(langTemplatePath, workflowDir); err != nil {
 		return fmt.Errorf("error copying workflow files: %w", err)
 	}
+	if err := copyFiles(filepath.Join(langTemplatePath, "workflow"), workflowDir); err != nil {
+		return fmt.Errorf("error copying workflow files: %w", err)
+	}
 
 	// Copy executor files
 	if err := copyFiles(langTemplatePath, executorDir); err != nil {
 		return fmt.Errorf("error copying executor files: %w", err)
+	}
+	if err := copyFiles(filepath.Join(langTemplatePath, "executor"), executorDir); err != nil {
+		return fmt.Errorf("error copying workflow files: %w", err)
 	}
 
 	// Copy generic root files

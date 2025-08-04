@@ -32,7 +32,8 @@ The goal is to provide a user-friendly interface for initializing, building, and
     - [ ] **`sb package`**
         - **Purpose:** To create the `lambda_package.zip` deployment artifact.
         - **Actions:**
-            - For workflow and executor:
+            - Verify workflow and executor directories exist.
+            - For workflow and executor each:
                 - Create a temporary build directory.
                 - Copy source code into build directory.
                 - Install all dependencies from `requirements.txt` (or equivalent) into the build directory.
