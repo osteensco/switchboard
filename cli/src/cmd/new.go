@@ -13,7 +13,7 @@ var New = &cobra.Command{
 	Use:   "new",
 	Short: "Create new project scaffolding.",
 	Long:  "Generate the core components of a Switchboard project including necessary Terraform and source code files",
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		var err error
 
 		if workflow_name == "" {
@@ -46,6 +46,16 @@ var New = &cobra.Command{
 			}
 		}
 
-		core.InitProject(workflow_name, cloud, lang)
+		progress := make(chan core.ProgressUpdate)
+		var initErr error
+		go func() {
+			initErr = core.InitProject(workflow_name, cloud, lang, progress)
+		}()
+
+		for update := range progress {
+			fmt.Println(update.Message)
+		}
+
+		return initErr
 	},
 }

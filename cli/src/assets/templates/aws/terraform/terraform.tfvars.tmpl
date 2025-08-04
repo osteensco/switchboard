@@ -1,0 +1,16 @@
+workflow_name = "{{.WorkflowName}}"
+{{- if eq .Language "py" }}
+workflow_handler = "workflow.workflow_handler"
+executor_handler = "executor.lambda_handler"
+runtime = "python3.11"
+{{- else if eq .Language "ts" }}
+workflow_handler = "workflow.workflow_handler"
+workflow_runtime = "nodejs18.x"
+executor_handler = "executor.lambda_handler"
+runtime = "nodejs18.x"
+{{- else if eq .Language "go" }}
+workflow_handler = "main"
+workflow_runtime = "go1.x"
+executor_handler = "main"
+runtime = "go1.x"
+{{- end }}

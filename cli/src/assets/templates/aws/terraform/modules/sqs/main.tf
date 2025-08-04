@@ -1,7 +1,7 @@
 resource "aws_sqs_queue" "invocation_queue" {
-  name = "${var.project_name}-invocation-queue-${var.environment}"
+  name = "switchboard-invocation-queue-${var.workflow_name}"
 }
 
 resource "aws_sqs_queue" "executor_queue" {
-  name = "${var.project_name}-executor-queue-${var.environment}"
+  name = "switchboard-executor-queue-${var.workflow_name}"
 }

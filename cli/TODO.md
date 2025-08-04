@@ -1,10 +1,11 @@
 # Switchboard CLI Development Plan
 
-This document outlines the plan for building the `switchboard` CLI tool. The goal is to provide a user-friendly interface for initializing, building, and deploying Switchboard projects.
+This document outlines the plan for building the `switchboard` CLI tool. 
+The goal is to provide a user-friendly interface for initializing, building, and deploying Switchboard projects.
 
 ## Core Commands
  - [ ] **Scaffolder**
-    - [x] **`switchboard new`**
+    - [x] **`sb new`**
         - **Purpose:** To scaffold a new Switchboard project directory.
         - **Actions:**
             - Generate the following files from templates:
@@ -16,15 +17,19 @@ This document outlines the plan for building the `switchboard` CLI tool. The goa
                 - `README.md` (with instructions for the user)
                 - `.gitignore`
 
-    - [ ] **`switchboard add <trigger_type>`**
+    - [ ] **`sb add <trigger_type>`**
         - **Purpose**: Provide out-of-the-box trigger components for initiating workflows. (Cron, http endpoints, etc.)
         - **Actions:**
             - Maps `trigger_type` to predefined terraform scripts
             - Adds these terraform scripts to project's terraform directory
             - Adds the trigger component to the SwitchboardResources table if the db exists.
+        - **Notes:**
+            - Out-of-the-box triggers won't cover all use cases, but hopefully cover more common ones.
+            - Custom added triggers
+                - Triggers need a way to be added to the SwitchBoardResources table manually
 
  - [ ] **Deployer**
-    - [ ] **`switchboard package`**
+    - [ ] **`sb package`**
         - **Purpose:** To create the `lambda_package.zip` deployment artifact.
         - **Actions:**
             - For workflow and executor:
@@ -33,21 +38,21 @@ This document outlines the plan for building the `switchboard` CLI tool. The goa
                 - Install all dependencies from `requirements.txt` (or equivalent) into the build directory.
                 - Zip the contents of the build directory into a `*_lambda.zip` file.
 
-    - [ ] **`switchboard deploy`**
+    - [ ] **`sb deploy`**
         - **Purpose:** To abstract `terraform apply` and deploy the project to the cloud.
         - **Actions:**
             - Read project configuration (e.g., `project_name`, `environment`) from a config file (e.g., `switchboard.toml`).
             - Run `terraform init` and `terraform apply` in the `terraform/` directory, passing in the necessary variables.
             - Populate the SwitchboardResources table with the deployed components.
 
-    - [ ] **`switchboard teardown`**
+    - [ ] **`sb teardown`**
         - **Purpose:** To abstract `terraform destroy` and tear down all cloud resources.
         - **Actions:**
             - Run `terraform destroy` in the `terraform/` directory.
             - Remove everything created with the `sb package` command.
 
  - [ ] **Logs Viewer**
-    - [ ] **`switchboard logs <workflow name> <query string>`**
+    - [ ] **`sb logs <workflow name> <query string>`**
         - **Purpose:** Queries logs and displays results to the user.
         - **Actions:**
             - Queries SwitchBoard resources table for given workflow's log sink.
@@ -57,14 +62,14 @@ This document outlines the plan for building the `switchboard` CLI tool. The goa
 
 ------The specific sub commands for these need to be defined-------
  - [ ] **Components**
-    - [ ] **`switchboard component <command> <args>`**
+    - [ ] **`sb component <command> <args>`**
         - **Purpose:** Provide component info to the user.
         - **Actions:**
             - Discover SwitchBoard resources that are deployed.
             - Display information to the user.
 
  - [ ] **Workflows**
-    - [ ] **`switchboard workflow <command> <args>`**
+    - [ ] **`sb workflow <command> <args>`**
         - **Purpose:** Interact with specific workflows.
         - **Actions:**
             - View Workflow runs and states.
@@ -76,8 +81,9 @@ This document outlines the plan for building the `switchboard` CLI tool. The goa
 This file will be read by the `deploy` command.
 
 ## Templates
- - [ ] Templates should have language directories for each cloud 
+ - [x] Templates should have language directories for each cloud 
 
+```
 templates
     ├── aws
     │   ├── py
@@ -102,9 +108,11 @@ templates
     │   └── terraform/
     ├── gcp
     └── azure
+```
 
- - [ ] Project structure after running `sb new` and `sb package` commands should look like this
+ - [ ] Project structure after running `sb new` and `sb package` commands should look like this -
 
+```
 [project root]
    ├── executor
    │   ├── `.dist`
@@ -121,6 +129,6 @@ templates
    ├── iam_policy.json
    ├── README.md
    └── terraform/
-
+```
 
 

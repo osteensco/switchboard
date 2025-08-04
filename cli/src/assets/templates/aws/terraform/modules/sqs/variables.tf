@@ -1,9 +1,5 @@
-variable "project_name" {
-  description = "The name of the project."
+variable "workflow_name" {
+  description = "The name of the workflow."
   type        = string
 }
 
-variable "environment" {
-  description = "The environment to deploy to."
-  type        = string
-}

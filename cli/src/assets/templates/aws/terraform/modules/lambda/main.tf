@@ -1,5 +1,5 @@
 resource "aws_lambda_function" "workflow_lambda" {
-  function_name = "${var.project_name}-workflow-${var.environment}"
+  function_name = "switchboard-workflow-${var.workflow_name}"
   role          = var.iam_role_arn
   handler       = var.workflow_handler
   runtime       = var.workflow_runtime
@@ -17,7 +17,7 @@ resource "aws_lambda_function" "workflow_lambda" {
 }
 
 resource "aws_lambda_function" "executor_lambda" {
-  function_name = "${var.project_name}-executor-${var.environment}"
+  function_name = "switchboard-executor-${var.workflow_name}"
   role          = var.iam_role_arn
   handler       = var.executor_handler
   runtime       = var.executor_runtime

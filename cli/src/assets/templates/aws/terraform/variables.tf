@@ -9,31 +9,13 @@ variable "aws_region" {
   default     = "us-east-1"
 }
 
-variable "project_name" {
-  description = "The name of the project."
-  type        = string
-  default     = "switchboard"
-}
-
-variable "environment" {
-  description = "The environment to deploy to."
-  type        = string
-  default     = "dev"
-}
-
 variable "workflow_name" {
   description = "The name of the workflow."
   type = string
-  default = "my-workflow"
 }
 
 variable "workflow_handler" {
   description = "The handler for the workflow lambda."
-  type        = string
-}
-
-variable "workflow_runtime" {
-  description = "The runtime for the workflow lambda."
   type        = string
 }
 
@@ -42,7 +24,7 @@ variable "executor_handler" {
   type        = string
 }
 
-variable "executor_runtime" {
-  description = "The runtime for the executor lambda."
+variable "runtime" {
+  description = "The runtime for the workflow and executor lambdas."
   type        = string
 }

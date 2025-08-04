@@ -19,23 +19,14 @@ module "iam" {
 
 module "dynamodb" {
   source = "./modules/dynamodb"
-
-  project_name = var.project_name
-  environment  = var.environment
 }
 
 module "sqs" {
   source = "./modules/sqs"
-
-  project_name = var.project_name
-  environment  = var.environment
 }
 
 module "lambda" {
   source = "./modules/lambda"
-
-  project_name = var.project_name
-  environment  = var.environment
 
   iam_role_arn         = module.iam.iam_role_arn
   invocation_queue_arn = module.sqs.invocation_queue_arn

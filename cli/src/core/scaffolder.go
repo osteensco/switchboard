@@ -5,107 +5,155 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
-	"strings"
+	"text/template"
 
 	"github.com/osteensco/switchboard/cli/assets"
 )
 
-func InitProject(name string, cloud string, lang string) {
-	// Create project directory
+type TfvarsData struct {
+	WorkflowName string
+	Language     string
+}
+
+func InitProject(name string, cloud string, lang string, progress chan<- ProgressUpdate) error {
+	defer close(progress)
+
+	progress <- ProgressUpdate{Message: fmt.Sprintf("Creating project directory: %s", name)}
 	projectName := name
-	err := os.Mkdir(projectName, 0755)
-	if err != nil {
-		fmt.Println("Error creating project directory:", err)
-		return
+	if err := os.Mkdir(projectName, 0755); err != nil {
+		return fmt.Errorf("error creating project directory: %w", err)
 	}
 
-	// Create workflow and executor directories
+	progress <- ProgressUpdate{Message: "Creating subdirectories..."}
 	workflowDir := filepath.Join(projectName, "workflow")
 	executorDir := filepath.Join(projectName, "executor")
-
-	err = os.Mkdir(workflowDir, 0755)
-	if err != nil {
-		fmt.Println("Error creating workflow directory:", err)
-		return
+	terraformDir := filepath.Join(projectName, "terraform")
+	for _, dir := range []string{workflowDir, executorDir, terraformDir} {
+		if err := os.Mkdir(dir, 0755); err != nil {
+			return fmt.Errorf("error creating subdirectory %s: %w", dir, err)
+		}
 	}
 
-	err = os.Mkdir(executorDir, 0755)
-	if err != nil {
-		fmt.Println("Error creating executor directory:", err)
-		return
-	}
-
-	// Copy template files
+	progress <- ProgressUpdate{Message: "Copying template files..."}
 	templateRoot := "templates"
 
-	// Copy generic files
-	copyTemplates(filepath.Join(templateRoot, cloud), projectName, func(path string) bool {
-		return !strings.Contains(path, "/")
-	})
+	// Template files can be found in cli/src/assets/templates
+	// We are building out a basic project for the user here, so we will generate:
+	//	- Workflow source code
+	//	- Executor source code
+	//	- All required terraform
+	// 	- Readme, gitignore, and supporting cloud assets like iam policies or service accounts
 
 	// Copy language-specific files
 	langTemplatePath := filepath.Join(templateRoot, cloud, lang)
-	copyTemplates(langTemplatePath, projectName, nil)
 
-	// Copy terraform directory
+	// Copy workflow files
+	if err := copyFiles(langTemplatePath, workflowDir); err != nil {
+		return fmt.Errorf("error copying workflow files: %w", err)
+	}
+
+	// Copy executor files
+	if err := copyFiles(langTemplatePath, executorDir); err != nil {
+		return fmt.Errorf("error copying executor files: %w", err)
+	}
+
+	// Copy generic root files
+	if err := copyFiles(filepath.Join(templateRoot, cloud), projectName); err != nil {
+		return fmt.Errorf("error copying generic files: %w", err)
+	}
+
+	// Copy terraform
 	terraformTemplatePath := filepath.Join(templateRoot, cloud, "terraform")
-	copyTemplates(terraformTemplatePath, filepath.Join(projectName, "terraform"), nil)
+	if err := copyDirectory(terraformTemplatePath, terraformDir); err != nil {
+		return fmt.Errorf("error copying terraform files: %w", err)
+	}
 
 	// Create terraform.tfvars
-	tformvarsContent := fmt.Sprintf("workflow_name = \"%s\"\n", name)
-	switch lang {
-	case "py":
-		tformvarsContent += "workflow_handler = \"src.workflow.workflow_handler\"\n"
-		tformvarsContent += "workflow_runtime = \"python3.11\"\n"
-		tformvarsContent += "executor_handler = \"src.executor.lambda_handler\"\n"
-		tformvarsContent += "executor_runtime = \"python3.11\"\n"
-	case "ts":
-		tformvarsContent += "workflow_handler = \"dist/workflow.workflow_handler\"\n"
-		tformvarsContent += "workflow_runtime = \"nodejs18.x\"\n"
-		tformvarsContent += "executor_handler = \"dist/executor.lambda_handler\"\n"
-		tformvarsContent += "executor_runtime = \"nodejs18.x\"\n"
-	case "go":
-		tformvarsContent += "workflow_handler = \"main\"\n"
-		tformvarsContent += "workflow_runtime = \"go1.x\"\n"
-		tformvarsContent += "executor_handler = \"main\"\n"
-		tformvarsContent += "executor_runtime = \"go1.x\"\n"
-	}
-
+	progress <- ProgressUpdate{Message: "Creating terraform.tfvars..."}
 	tformvarsPath := filepath.Join(projectName, "terraform", "terraform.tfvars")
-	err = os.WriteFile(tformvarsPath, []byte(tformvarsContent), 0644)
+	tformvarsFile, err := os.Create(tformvarsPath)
 	if err != nil {
-		fmt.Println("Error creating terraform.tfvars:", err)
-		return
+		return fmt.Errorf("error creating terraform.tfvars: %w", err)
+	}
+	defer tformvarsFile.Close()
+
+	templatePath := filepath.Join(templateRoot, cloud, "terraform", "terraform.tfvars.tmpl")
+	tmpl, err := template.ParseFS(assets.Templates, templatePath)
+	if err != nil {
+		return fmt.Errorf("error parsing template: %w", err)
 	}
 
-	fmt.Println("Project created successfully!")
+	// Fill out terraform variables based on the user's input for the new project
+	data := TfvarsData{WorkflowName: name, Language: lang}
+	if err := tmpl.Execute(tformvarsFile, data); err != nil {
+		return fmt.Errorf("error executing template: %w", err)
+	}
+
+	// Send success message to mark completion
+	progress <- ProgressUpdate{Message: "Project created successfully!"}
+	return nil
 }
 
-func copyTemplates(templatePath, destPath string, filter func(path string) bool) error {
-	return fs.WalkDir(assets.Templates, templatePath, func(path string, d fs.DirEntry, err error) error {
+// copyFiles copies a specific list of files from a source directory in the embedded FS
+// to a destination directory on the local filesystem. It skips files that don't exist in the source.
+func copyFiles(srcDir, destDir string) error {
+	files, err := assets.Templates.ReadDir(srcDir)
+	if err != nil {
+		return fmt.Errorf("failed to read embedded dir %s: %w", srcDir, err)
+	}
+
+	for _, file := range files {
+		// we aren't copying subdirs
+		if file.IsDir() {
+			continue
+		}
+
+		srcPath := filepath.Join(srcDir, file.Name())
+		destPath := filepath.Join(destDir, file.Name())
+
+		content, err := assets.Templates.ReadFile(srcPath)
+		if err != nil {
+			return fmt.Errorf("failed to read embedded file %s: %w", srcPath, err)
+		}
+
+		if err := os.WriteFile(destPath, content, 0644); err != nil {
+			return fmt.Errorf("failed to write file %s: %w", destPath, err)
+		}
+	}
+
+	return nil
+}
+
+// copyDirectory recursively copies a directory from the embedded FS to the local filesystem.
+func copyDirectory(srcDir, destDir string) error {
+	return fs.WalkDir(assets.Templates, srcDir, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
 
-		if filter != nil && !filter(path) {
+		relPath, err := filepath.Rel(srcDir, path)
+		if err != nil {
+			return err
+		}
+		destPath := filepath.Join(destDir, relPath)
+
+		if relPath == "." {
 			return nil
 		}
 
-		// Create the destination path
-		dest := filepath.Join(destPath, path[len(templatePath):])
-
 		if d.IsDir() {
-			return os.MkdirAll(dest, 0755)
-		} else {
-			content, err := assets.Templates.ReadFile(path)
-			if err != nil {
-				return err
-			}
-			return os.WriteFile(dest, content, 0644)
+			return os.MkdirAll(destPath, 0755)
 		}
+
+		content, err := assets.Templates.ReadFile(path)
+		if err != nil {
+			return err
+		}
+		return os.WriteFile(destPath, content, 0644)
 	})
 }
 
 func AddTrigger(trigger string) {
+	// TODO implement different out-of-the-box triggers
 	fmt.Println("Trigger added: " + trigger)
 }

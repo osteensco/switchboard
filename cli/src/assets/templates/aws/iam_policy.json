@@ -10,7 +10,7 @@
                 "dynamodb:Query"
             ],
             "Effect": "Allow",
-            "Resource": "arn:aws:dynamodb:*:*:table/{{ project_name }}-*"
+            "Resource": "arn:aws:dynamodb:*:*:table/Switchboard*"
         },
         {
             "Sid": "AllowSQSActions",
@@ -21,7 +21,7 @@
                 "sqs:GetQueueAttributes"
             ],
             "Effect": "Allow",
-            "Resource": "arn:aws:sqs:*:*:{{ project_name }}-*"
+            "Resource": "arn:aws:sqs:*:*:switchboard-*"
         },
         {
             "Sid": "AllowLogging",
