@@ -1,6 +1,7 @@
 package core
 
 import (
+	"encoding/json"
 	"fmt"
 	"io/fs"
 	"os"
@@ -93,6 +94,22 @@ func InitProject(name string, cloud string, lang string, progress chan<- Progres
 	data := TfvarsData{WorkflowName: name, Language: lang}
 	if err := tmpl.Execute(tformvarsFile, data); err != nil {
 		return fmt.Errorf("error executing template: %w", err)
+	}
+
+	// Create switchboard.json
+	progress <- ProgressUpdate{Message: "Creating switchboard.json..."}
+	config := ProjectConfig{
+		Name:     name,
+		Language: lang,
+		Cloud:    cloud,
+	}
+	configData, err := json.MarshalIndent(config, "", "  ")
+	if err != nil {
+		return fmt.Errorf("error marshalling config: %w", err)
+	}
+	configPath := filepath.Join(projectName, "switchboard.json")
+	if err := os.WriteFile(configPath, configData, 0644); err != nil {
+		return fmt.Errorf("error writing switchboard.json: %w", err)
 	}
 
 	// Send success message to mark completion
