@@ -110,7 +110,11 @@ class AWS_DataInterface(DBInterface):
         state = None
         try:
             response = tbl.get_item(Key={"name": name, "run_id": id})
-            print(f"!!!!!!!! read response: {response}")
+            log.bind(
+                component="db_service",
+                workflow_name=name,
+                run_id=id
+                ).info(f"Read response: {response}")
         except ClientError as err:
             log.bind(
                 component="db_service",
@@ -120,13 +124,23 @@ class AWS_DataInterface(DBInterface):
             raise 
         if "Item" in response:
             state = NewState(response["Item"])
-            print(f"!!!!!!!!! read NewState: {state}")
+            log.bind(
+                component="db_service",
+                workflow_name=name,
+                run_id=id,
+                state=state
+            ).info(f"Read NewState...")
         return state
 
     def write(self, state: State):
         tbl = self.get_table()
         state_dict = state.to_dict()
-        print(f"!!!!!!! write state: {state_dict}")
+        log.bind(
+            component="db_service",
+            workflow_name=state.name,
+            run_id=state.run_id,
+            state=state_dict
+        ).info(f"Writing to db...")
         try:
             response = tbl.update_item(
                 Key={"name": state_dict["name"], "run_id": state_dict["run_id"]},
@@ -144,7 +158,12 @@ class AWS_DataInterface(DBInterface):
             raise
 
         else:
-            print(f"!!!!!!! write response: {response}")
+            log.bind(
+                component="db_service",
+                workflow_name=state.name,
+                run_id=state.run_id,
+                state=state_dict
+                ).info(f"Write response: {response}")
             assert response['ResponseMetadata']['HTTPStatusCode'] == 200
             
 
