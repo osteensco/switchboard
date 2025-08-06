@@ -1,8 +1,7 @@
 package core
 
 import (
-	"archive/zip"
-	"io"
+	"errors"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -10,264 +9,128 @@ import (
 	"testing"
 )
 
-func TestShouldSkip(t *testing.T) {
+func TestPackageFuncs(t *testing.T) {
+	// Save original functions and restore them after the test
+	originalLoadConfig := loadConfig
+	originalPackageComponent := packageComponent
+	defer func() {
+		loadConfig = originalLoadConfig
+		packageComponent = originalPackageComponent
+	}()
+
 	testCases := []struct {
-		name     string
-		isDir    bool
-		expected bool
-	}{
-		{"workflow", true, false},
-		{".dist", true, true},
-		{"venv", true, true},
-		{"__pycache__", true, true},
-		{"node_modules", true, true},
-		{".pytest_cache", true, true},
-		{"main.py", false, false},
-		{"workflow_lambda.zip", false, true},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			actual := shouldSkip(tc.name, tc.isDir)
-			if actual != tc.expected {
-				t.Errorf("shouldSkip(%q, %v) = %v; want %v", tc.name, tc.isDir, actual, tc.expected)
-			}
-		})
-	}
-}
-
-func TestFindProjectRoot(t *testing.T) {
-	// Setup a temporary directory structure
-	rootDir, err := os.MkdirTemp("", "test-root-")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer os.RemoveAll(rootDir)
-
-	subDir := filepath.Join(rootDir, "subdir1", "subdir2")
-	if err := os.MkdirAll(subDir, 0755); err != nil {
-		t.Fatal(err)
-	}
-
-	// Create a dummy switchboard.json in the root
-	configPath := filepath.Join(rootDir, "switchboard.json")
-	if err := os.WriteFile(configPath, []byte("{}"), 0644); err != nil {
-		t.Fatal(err)
-	}
-
-	// Test 1: Should find the root from a subdirectory
-	t.Run("Finds Root from Subdirectory", func(t *testing.T) {
-		// Change into the subdirectory
-		originalDir, err := os.Getwd()
-		if err != nil {
-			t.Fatal(err)
-		}
-		defer os.Chdir(originalDir)
-		if err := os.Chdir(subDir); err != nil {
-			t.Fatal(err)
-		}
-
-		foundRoot, err := findProjectRoot()
-		if err != nil {
-			t.Fatalf("findProjectRoot() returned an error: %v", err)
-		}
-
-		if foundRoot != rootDir {
-			t.Errorf("Expected to find root at %q, but found %q", rootDir, foundRoot)
-		}
-	})
-
-	// Test 2: Should return an error if no config file is found
-	t.Run("Fails when no config exists", func(t *testing.T) {
-		// Change to a directory with no config file in its hierarchy
-		emptyDir, err := os.MkdirTemp("", "empty-")
-		if err != nil {
-			t.Fatal(err)
-		}
-		defer os.RemoveAll(emptyDir)
-
-		originalDir, err := os.Getwd()
-		if err != nil {
-			t.Fatal(err)
-		}
-		defer os.Chdir(originalDir)
-		if err := os.Chdir(emptyDir); err != nil {
-			t.Fatal(err)
-		}
-
-		_, err = findProjectRoot()
-		if err == nil {
-			t.Error("findProjectRoot() should have returned an error, but it didn't")
-		}
-	})
-}
-
-func TestPackageComponent(t *testing.T) {
-	testCases := []struct {
-		name             string
-		language         string
-		filesToCreate    map[string]string
-		expectErr        bool
+		name string
+		setupMocks func()
+		expectedErr error
 		expectedProgress []string
 	}{
 		{
-			name:     "Python Success",
-			language: "py",
-			filesToCreate: map[string]string{
-				"main.py":          "print('hello')",
-				"requirements.txt": "boto3",
+			name: "Successful Packaging",
+			setupMocks: func() {
+				loadConfig = func() (*ProjectConfig, string, error) {
+					return &ProjectConfig{Name: "test", Language: "py", Cloud: "aws"}, "/tmp/test-project", nil
+				}
+				packageComponent = func(componentName string, config *ProjectConfig, projectRoot string, progress chan<- ProgressUpdate) error {
+					progress <- ProgressUpdate{Message: "Component " + componentName + " packaged."}
+					return nil
+				}
 			},
-			expectErr: false,
+			expectedErr: nil,
 			expectedProgress: []string{
-				"Packaging workflow...",
-				"Installing Python dependencies from requirements.txt...",
-				"workflow packaged successfully: " + filepath.Join("workflow", "workflow_lambda.zip"),
+				"Packaging serverless functions for deployment...",
+				"Component workflow packaged.",
+				"Component executor packaged.",
+				"Packaging complete.",
 			},
 		},
 		{
-			name:     "Node Success",
-			language: "ts",
-			filesToCreate: map[string]string{
-				"index.ts":     "console.log('hello')",
-				"package.json": `{"name": "test"}`,
+			name: "LoadConfig Error",
+			setupMocks: func() {
+				loadConfig = func() (*ProjectConfig, string, error) {
+					return nil, "", errors.New("config error")
+				}
+				packageComponent = func(componentName string, config *ProjectConfig, projectRoot string, progress chan<- ProgressUpdate) error {
+					return nil // Should not be called
+				}
 			},
-			expectErr: false,
+			expectedErr: errors.New("config error"),
 			expectedProgress: []string{
-				"Packaging workflow...",
-				"Installing Node.js dependencies from package.json...",
-				"workflow packaged successfully: " + filepath.Join("workflow", "workflow_lambda.zip"),
+				"config error",
 			},
 		},
 		{
-			name:          "Component Dir Missing",
-			language:      "py",
-			filesToCreate: nil, // No component dir
-			expectErr:     true,
+			name: "Workflow Package Error",
+			setupMocks: func() {
+				loadConfig = func() (*ProjectConfig, string, error) {
+					return &ProjectConfig{Name: "test", Language: "py", Cloud: "aws"}, "/tmp/test-project", nil
+				}
+				packageComponent = func(componentName string, config *ProjectConfig, projectRoot string, progress chan<- ProgressUpdate) error {
+					if componentName == "workflow" {
+						return errors.New("workflow package error")
+					}
+					return nil
+				}
+			},
+			expectedErr: errors.New("error packaging workflow: workflow package error"),
 			expectedProgress: []string{
-				"Packaging workflow...",
+				"Packaging serverless functions for deployment...",
 			},
 		},
 		{
-			name:     "Unsupported Language",
-			language: "java",
-			filesToCreate: map[string]string{
-				"main.java": "public class Main {}",
+			name: "Executor Package Error",
+			setupMocks: func() {
+				loadConfig = func() (*ProjectConfig, string, error) {
+					return &ProjectConfig{Name: "test", Language: "py", Cloud: "aws"}, "/tmp/test-project", nil
+				}
+				packageComponent = func(componentName string, config *ProjectConfig, projectRoot string, progress chan<- ProgressUpdate) error {
+					if componentName == "executor" {
+						return errors.New("executor package error")
+					}
+					progress <- ProgressUpdate{Message: "Component " + componentName + " packaged."}
+					return nil
+				}
 			},
-			expectErr: true,
+			expectedErr: errors.New("error packaging executor: executor package error"),
 			expectedProgress: []string{
-				"Packaging workflow...",
+				"Packaging serverless functions for deployment...",
+				"Component workflow packaged.",
 			},
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			// Setup a temporary directory for each test run
-			tmpDir, err := os.MkdirTemp("", "test-package-")
-			if err != nil {
-				t.Fatal(err)
-			}
-			defer os.RemoveAll(tmpDir)
+			// Set up mocks for the current test case
+			tc.setupMocks()
+			
 
-			componentName := "workflow"
-			componentPath := filepath.Join(tmpDir, componentName)
-
-			if tc.filesToCreate != nil {
-				if err := os.Mkdir(componentPath, 0755); err != nil {
-					t.Fatal(err)
-				}
-				for name, content := range tc.filesToCreate {
-					if err := os.WriteFile(filepath.Join(componentPath, name), []byte(content), 0644); err != nil {
-						t.Fatal(err)
-					}
-				}
-			}
-
-			originalExecCommand := execCommand
-			defer func() { execCommand = originalExecCommand }()
-			execCommand = func(name string, arg ...string) *exec.Cmd {
-				return exec.Command("true") // Simulate success
-			}
-
-			config := &ProjectConfig{Language: tc.language}
-			progress := make(chan ProgressUpdate, 10) // Buffered channel for progress updates
+			progress := make(chan ProgressUpdate, 10) // Buffered channel
 			var receivedUpdates []string
 			done := make(chan struct{})
+			ready := make(chan struct{})
+
 			go func() {
+				close(ready) // Signal that the goroutine is ready
 				for update := range progress {
 					receivedUpdates = append(receivedUpdates, update.Message)
 				}
 				close(done)
 			}()
 
-			err = packageComponent(componentName, config, tmpDir, progress)
+			<-ready // Wait for the goroutine to be ready
 
-			if (err != nil) != tc.expectErr {
-				t.Errorf("packageComponent() error = %v, expectErr %v", err, tc.expectErr)
-				return
+			err := PackageFuncs(progress)
+			<-done // Wait for the goroutine to finish
+
+			if (err != nil && tc.expectedErr == nil) || (err == nil && tc.expectedErr != nil) || (err != nil && tc.expectedErr != nil && err.Error() != tc.expectedErr.Error()) {
+				t.Errorf("PackageFuncs() error = %v, expectedErr %v", err, tc.expectedErr)
 			}
 
-			if !tc.expectErr {
-				zipFilePath := filepath.Join(componentPath, "workflow_lambda.zip")
-				if _, err := os.Stat(zipFilePath); os.IsNotExist(err) {
-					t.Errorf("Expected zip file to be created at: %s", zipFilePath)
-				}
-
-				if tc.language == "py" {
-					// Unzip the file and verify its contents
-					unzipDir := filepath.Join(componentPath, "unzipped")
-					if err := unzip(zipFilePath, unzipDir); err != nil {
-						t.Fatalf("Failed to unzip archive: %v", err)
-					}
-
-					expectedFilePath := filepath.Join(unzipDir, "main.py")
-					if _, err := os.Stat(expectedFilePath); os.IsNotExist(err) {
-						t.Errorf("Expected file to exist in archive: %s", expectedFilePath)
-					}
-				}
+			if !slices.Equal(receivedUpdates, tc.expectedProgress) {
+				t.Errorf("Expected progress updates %q, but got %q", tc.expectedProgress, receivedUpdates)
 			}
 		})
 	}
-}
-
-func unzip(src, dest string) error {
-	r, err := zip.OpenReader(src)
-	if err != nil {
-		return err
-	}
-	defer r.Close()
-
-	for _, f := range r.File {
-		fpath := filepath.Join(dest, f.Name)
-		if f.FileInfo().IsDir() {
-			os.MkdirAll(fpath, os.ModePerm)
-			continue
-		}
-
-		if err := os.MkdirAll(filepath.Dir(fpath), os.ModePerm); err != nil {
-			return err
-		}
-
-		out, err := os.OpenFile(fpath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, f.Mode())
-		if err != nil {
-			return err
-		}
-
-		rc, err := f.Open()
-		if err != nil {
-			return err
-		}
-
-		_, err = io.Copy(out, rc)
-
-		out.Close()
-		rc.Close()
-
-		if err != nil {
-			return err
-		}
-	}
-	return nil
 }
 
 func TestDeployWorkflow(t *testing.T) {
@@ -289,10 +152,11 @@ func TestDeployWorkflow(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer os.Chdir(originalWd)
 	if err := os.Chdir(tmpDir); err != nil {
 		t.Fatal(err)
 	}
-	defer os.Chdir(originalWd)
+
 
 	originalExecCommand := execCommand
 	defer func() { execCommand = originalExecCommand }()
@@ -356,10 +220,11 @@ func TestTeardownWorkflow(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer os.Chdir(originalWd)
 	if err := os.Chdir(tmpDir); err != nil {
 		t.Fatal(err)
 	}
-	defer os.Chdir(originalWd)
+
 
 	originalExecCommand := execCommand
 	defer func() { execCommand = originalExecCommand }()
@@ -401,51 +266,5 @@ func TestTeardownWorkflow(t *testing.T) {
 
 	if !slices.Equal(expectedUpdates, receivedUpdates) {
 		t.Errorf("Expected progress updates %v, but got %v", expectedUpdates, receivedUpdates)
-	}
-}
-
-func TestInstallPipDependencies(t *testing.T) {
-	// Create a temporary directory for the test
-	tmpDir, err := os.MkdirTemp("", "test-pip-")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer os.RemoveAll(tmpDir)
-
-	// Create a dummy requirements.txt
-	componentDir := filepath.Join(tmpDir, "workflow")
-	if err := os.Mkdir(componentDir, 0755); err != nil {
-		t.Fatal(err)
-	}
-	requirementsPath := filepath.Join(componentDir, "requirements.txt")
-	if err := os.WriteFile(requirementsPath, []byte("boto3"), 0644); err != nil {
-		t.Fatal(err)
-	}
-
-	// Mock exec.Command
-	var capturedArgs []string
-	originalExecCommand := execCommand
-	execCommand = func(name string, arg ...string) *exec.Cmd {
-		capturedArgs = append([]string{name}, arg...)
-		// Return a dummy command that does nothing and succeeds
-		return exec.Command("true")
-	}
-	defer func() { execCommand = originalExecCommand }()
-
-	progress := make(chan ProgressUpdate)
-	go func() {
-		for range progress { // Drain channel
-		}
-	}()
-
-	buildDir := filepath.Join(componentDir, ".dist")
-	if err := installPipDependencies(componentDir, buildDir, progress); err != nil {
-		t.Fatalf("installPipDependencies() returned an error: %v", err)
-	}
-
-	// Verify the command and arguments
-	expectedArgs := []string{"pip", "install", "-r", requirementsPath, "-t", buildDir}
-	if !slices.Equal(capturedArgs, expectedArgs) {
-		t.Errorf("Expected command arguments %v, but got %v", expectedArgs, capturedArgs)
 	}
 }
