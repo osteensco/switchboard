@@ -5,11 +5,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"io/fs"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"slices"
 	"strings"
+
+	"github.com/osteensco/switchboard/cli/assets"
 )
 
 func findProjectRoot() (string, error) {
@@ -259,4 +262,63 @@ func zipDirectory(source, target string) error {
 	})
 
 	return nil
+}
+
+// copyFiles copies a specific list of files from a source directory in the embedded FS
+// to a destination directory on the local filesystem. It skips files that don't exist in the source.
+func copyFiles(srcDir, destDir string) error {
+	files, err := assets.Templates.ReadDir(srcDir)
+	if err != nil {
+		return fmt.Errorf("failed to read embedded dir %s: %w", srcDir, err)
+	}
+
+	for _, file := range files {
+		// we aren't copying subdirs
+		if file.IsDir() {
+			continue
+		}
+
+		srcPath := filepath.Join(srcDir, file.Name())
+		destPath := filepath.Join(destDir, file.Name())
+
+		content, err := assets.Templates.ReadFile(srcPath)
+		if err != nil {
+			return fmt.Errorf("failed to read embedded file %s: %w", srcPath, err)
+		}
+
+		if err := os.WriteFile(destPath, content, 0644); err != nil {
+			return fmt.Errorf("failed to write file %s: %w", destPath, err)
+		}
+	}
+
+	return nil
+}
+
+// copyDirectory recursively copies a directory from the embedded FS to the local filesystem.
+func copyDirectory(srcDir, destDir string) error {
+	return fs.WalkDir(assets.Templates, srcDir, func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+
+		relPath, err := filepath.Rel(srcDir, path)
+		if err != nil {
+			return err
+		}
+		destPath := filepath.Join(destDir, relPath)
+
+		if relPath == "." {
+			return nil
+		}
+
+		if d.IsDir() {
+			return os.MkdirAll(destPath, 0755)
+		}
+
+		content, err := assets.Templates.ReadFile(path)
+		if err != nil {
+			return err
+		}
+		return os.WriteFile(destPath, content, 0644)
+	})
 }

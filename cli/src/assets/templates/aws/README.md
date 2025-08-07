@@ -151,6 +151,10 @@ You successfully ran the `sb new` command and depending on what language you cho
    └── terraform/
 ```
 
+### ! IMPORTANT !
+**Your iam_role_arn will be located in terraform/terraform.tfvars. Ensure that this file is not commited to version control. This should be automatically added to the .gitignore on project creation.**
+__________________________________________________________
+
 The `workflow` and `executor` directories will contain the source code for the workflow and executor lambda functions.
 
 ## Implementing your workflow
