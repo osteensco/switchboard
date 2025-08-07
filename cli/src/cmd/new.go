@@ -46,10 +46,21 @@ var New = &cobra.Command{
 			}
 		}
 
+		// Get cloud specific terraform information
+		switch cloud {
+		case "aws":
+			var arn_prompt = "Please provide your iam role arn."
+			tf_vars["iam_role_arn"], err = wizard.Input(arn_prompt, "arn:aws:iam::<account_id>:role/<role_name>")
+			if err != nil {
+				fmt.Println(err)
+				os.Exit(1)
+			}
+		}
+
 		progress := make(chan core.ProgressUpdate)
 		var initErr error
 		go func() {
-			initErr = core.InitProject(workflow_name, cloud, lang, progress)
+			initErr = core.InitProject(workflow_name, cloud, lang, tf_vars, progress)
 		}()
 
 		for update := range progress {

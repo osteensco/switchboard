@@ -29,7 +29,7 @@ The goal is to provide a user-friendly interface for initializing, building, and
                 - Triggers need a way to be added to the SwitchBoardResources table manually
 
  - [ ] **Deployer**
-    - [ ] **`sb package`**
+    - [x] **`sb package`**
         - **Purpose:** To create the `lambda_package.zip` deployment artifact.
         - **Actions:**
             - Verify workflow and executor directories exist.
@@ -39,14 +39,14 @@ The goal is to provide a user-friendly interface for initializing, building, and
                 - Install all dependencies from `requirements.txt` (or equivalent) into the build directory.
                 - Zip the contents of the build directory into a `*_lambda.zip` file.
 
-    - [ ] **`sb deploy`**
+    - [x] **`sb deploy`**
         - **Purpose:** To abstract `terraform apply` and deploy the project to the cloud.
         - **Actions:**
             - Read project configuration (e.g., `project_name`, `environment`) from a config file (e.g., `switchboard.toml`).
             - Run `terraform init` and `terraform apply` in the `terraform/` directory, passing in the necessary variables.
             - Populate the SwitchboardResources table with the deployed components.
 
-    - [ ] **`sb teardown`**
+    - [x] **`sb teardown`**
         - **Purpose:** To abstract `terraform destroy` and tear down all cloud resources.
         - **Actions:**
             - Run `terraform destroy` in the `terraform/` directory.

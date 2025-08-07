@@ -1,0 +1,11 @@
+
+version: '3.8'
+services:
+  sb-cli-dev:
+    build:
+      context: ..
+      dockerfile: test_env/Dockerfile
+    working_dir: /app
+    stdin_open: true
+    tty: true
+    entrypoint: /bin/bash

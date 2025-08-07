@@ -64,7 +64,8 @@ var packageComponent = func(componentName string, config *ProjectConfig, project
 	if err := os.MkdirAll(buildDir, 0755); err != nil {
 		return fmt.Errorf("failed to create build directory: %w", err)
 	}
-	defer os.RemoveAll(buildDir)
+	// we keep the build dir so the user can debug easier if needed
+	// defer os.RemoveAll(buildDir)
 
 	if err := copySource(componentPath, buildDir); err != nil {
 		return fmt.Errorf("failed to copy source code: %w", err)

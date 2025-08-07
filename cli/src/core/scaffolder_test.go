@@ -12,14 +12,17 @@ func TestInitProject(t *testing.T) {
 		name            string
 		lang            string
 		cloud           string
+		tf_vars         map[string]string
 		expectedContent string
 		expectedFiles   []string
 	}{
 		{
-			name:  "Python",
-			lang:  "py",
-			cloud: "aws",
-			expectedContent: `workflow_name = "my-test-project-py"
+			name:    "Python",
+			lang:    "py",
+			cloud:   "aws",
+			tf_vars: map[string]string{"iam_role_arn": "placeholder_arn"},
+			expectedContent: `iam_role_arn = "placeholder_arn"
+workflow_name = "my-test-project-py"
 workflow_handler = "workflow.workflow_handler"
 executor_handler = "executor.lambda_handler"
 runtime = "python3.11"
@@ -107,7 +110,7 @@ runtime = "python3.11"
 				}
 			}()
 
-			initErr = InitProject(projectName, tc.cloud, tc.lang, progress)
+			initErr = InitProject(projectName, tc.cloud, tc.lang, tc.tf_vars, progress)
 			if initErr != nil {
 				t.Fatalf("InitProject failed: %v", initErr)
 			}
@@ -168,7 +171,7 @@ func TestInitProject_DirectoryExists(t *testing.T) {
 		}
 	}()
 
-	initErr = InitProject(projectName, "aws", "py", progress)
+	initErr = InitProject(projectName, "aws", "py", map[string]string{"iam_role_arn": "placeholder_arn"}, progress)
 
 	// We expect an error because the directory already exists
 	if initErr == nil {
