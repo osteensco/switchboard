@@ -51,7 +51,8 @@ You successfully ran the `sb new` command and depending on what language you cho
 ```
 
 ### ! IMPORTANT !
-**Your iam_role_arn will be located in terraform/terraform.tfvars. Ensure that this file is not commited to version control. 
+<!-- TODO - delete this warning once secret terraform vars is fixed -->
+**The switchboard_role_arn will be located in terraform/terraform.tfvars. Ensure that this file is not commited to version control. 
 This should be automatically added to the .gitignore on project creation.**
 __________________________________________________________
 

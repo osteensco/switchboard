@@ -1,4 +1,4 @@
-variable "iam_role_arn" {
+variable "switchboard_role_arn" {
   description = "The ARN of the pre-existing IAM role for the Lambda functions."
   type        = string
 }

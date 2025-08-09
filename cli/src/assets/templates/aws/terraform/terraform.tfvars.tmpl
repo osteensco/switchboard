@@ -1,4 +1,3 @@
-iam_role_arn = "{{index .CloudTfVars "iam_role_arn"}}"
 workflow_name = "{{.WorkflowName}}"
 {{- if eq .Language "py" }}
 workflow_handler = "workflow.workflow_handler"

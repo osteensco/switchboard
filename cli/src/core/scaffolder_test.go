@@ -20,8 +20,8 @@ func TestInitProject(t *testing.T) {
 			name:    "Python",
 			lang:    "py",
 			cloud:   "aws",
-			tf_vars: map[string]string{"iam_role_arn": "placeholder_arn"},
-			expectedContent: `iam_role_arn = "placeholder_arn"
+			tf_vars: map[string]string{"switchboard_role_arn": "placeholder_arn"},
+			expectedContent: `switchboard_role_arn = "placeholder_arn"
 workflow_name = "my-test-project-py"
 workflow_handler = "workflow.workflow_handler"
 executor_handler = "executor.lambda_handler"

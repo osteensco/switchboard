@@ -14,7 +14,7 @@ provider "aws" {
 module "iam" {
   source = "./modules/iam"
 
-  iam_role_arn = var.iam_role_arn
+  switchboard_role_arn = var.switchboard_role_arn
 }
 
 module "dynamodb" {
@@ -28,7 +28,7 @@ module "sqs" {
 module "lambda" {
   source = "./modules/lambda"
 
-  iam_role_arn         = module.iam.iam_role_arn
+  switchboard_role_arn         = module.iam.switchboard_role_arn
   invocation_queue_arn = module.sqs.invocation_queue_arn
   invocation_queue_url = module.sqs.invocation_queue_url
   executor_queue_arn   = module.sqs.executor_queue_arn

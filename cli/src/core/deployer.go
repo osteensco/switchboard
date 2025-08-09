@@ -50,6 +50,8 @@ func DeployWorkflow(progress chan<- ProgressUpdate) error {
 		return fmt.Errorf("error running terraform init: %w", err)
 	}
 
+	// TODO
+	//	- auto-approve will cause issues here, need to ensure it's interactive instead. This interactivity will have to be managed by each UI package.
 	applyCmd := execCommand("terraform", "apply", "-auto-approve")
 	applyCmd.Dir = terraformDir
 	applyCmd.Stdout = os.Stdout

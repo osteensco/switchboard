@@ -8,7 +8,7 @@ variable "environment" {
   type        = string
 }
 
-variable "iam_role_arn" {
+variable "switchboard_role_arn" {
   description = "The ARN of the IAM role for the Lambda functions."
   type        = string
 }

@@ -116,8 +116,9 @@ The Switchboard AWS IAM setup consists of:
 
 5. **Developer IAM Policy:**
 
-An administrator must attach a policy with the following permissions to the developer's IAM user or role. 
-This policy grants the minimum permissions required to deploy and manage the a switchboard workflow's resources using Terraform.
+
+An administrator must create a policy or a group with the following permissions.
+These are the minimum permissions required to deploy and manage the a switchboard workflow's resources using Terraform.
 
 ```json
 {
@@ -167,6 +168,12 @@ This policy grants the minimum permissions required to deploy and manage the a s
             "Sid": "PassRoleForLambda",
             "Effect": "Allow",
             "Action": "iam:PassRole",
+            "Resource": "arn:aws:iam::<aws-account-id>:role/switchboard-role"
+        },
+        {
+            "Sid": "AllowGetSwitchboardRole",
+            "Effect": "Allow",
+            "Action": "iam:GetRole",
             "Resource": "arn:aws:iam::<aws-account-id>:role/switchboard-role"
         }
     ]
