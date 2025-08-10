@@ -15,15 +15,11 @@ RUN go build -o /usr/local/bin/sb ./main.go
 
 
 # runtime stage
-FROM alpine:latest
+FROM debian:bookworm-slim
 
-RUN apk add --no-cache \
-    bash \
-    git \
-    python3 \
-    py3-pip \
-    curl \
-    unzip
+RUN apt-get update && apt-get install -y \
+    bash git python3 python3-pip curl unzip groff less \
+    && apt-get clean
 
 ENV TERRAFORM_VERSION=1.8.4
 
@@ -33,6 +29,11 @@ RUN curl -fsSL https://releases.hashicorp.com/terraform/${TERRAFORM_VERSION}/ter
     mv terraform /usr/local/bin/ && \
     chmod +x /usr/local/bin/terraform && \
     rm terraform.zip
+
+RUN curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip" \
+    && unzip awscliv2.zip \
+    && ./aws/install \
+    && rm -rf aws awscliv2.zip
 
 COPY --from=builder /usr/local/bin/sb /usr/local/bin/sb
 

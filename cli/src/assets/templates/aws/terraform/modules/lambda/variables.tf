@@ -3,7 +3,7 @@ variable "workflow_name" {
   type        = string
 }
 
-variable "iam_role_arn" {
+variable "switchboard_role_arn" {
   description = "The ARN of the IAM role for the Lambda functions."
   type        = string
 }
@@ -33,17 +33,14 @@ variable "workflow_handler" {
   type        = string
 }
 
-variable "workflow_runtime" {
-  description = "The runtime for the workflow lambda."
-  type        = string
-}
-
 variable "executor_handler" {
   description = "The handler for the executor lambda."
   type        = string
 }
 
-variable "executor_runtime" {
-  description = "The runtime for the executor lambda."
+variable "runtime" {
+  description = "The runtime for lambdas."
   type        = string
 }
+
+

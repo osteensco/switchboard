@@ -15,5 +15,3 @@ lambda_package.zip
 .terraform/
 .terraform.lock.hcl
 
-# Terraform variables
-**/*.tfvars

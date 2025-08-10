@@ -12,7 +12,6 @@ var (
 	// add other flags and stuff here
 
 	// new command
-	tf_vars       = make(map[string]string)
 	workflow_name string // logs command
 	cloud         string
 	lang          string

@@ -16,8 +16,7 @@ def AWS_db_connect():
     Returns a dynamodb service resource - https://boto3.amazonaws.com/v1/documentation/api/latest/guide/resources.html#guide-resources
 
     '''
-    # TODO remove hardcoded region_name
-    # return boto3.resource('dynamodb', region_name='us-east-1')
+
     return boto3.resource('dynamodb')
 
 

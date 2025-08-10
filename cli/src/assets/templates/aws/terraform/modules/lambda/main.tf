@@ -1,8 +1,8 @@
 resource "aws_lambda_function" "workflow_lambda" {
   function_name = "switchboard-workflow-${var.workflow_name}"
-  role          = var.iam_role_arn
+  role          = var.switchboard_role_arn
   handler       = var.workflow_handler
-  runtime       = var.workflow_runtime
+  runtime       = var.runtime
   filename      = "../workflow/workflow_lambda.zip"
   timeout       = 30
 
@@ -18,9 +18,9 @@ resource "aws_lambda_function" "workflow_lambda" {
 
 resource "aws_lambda_function" "executor_lambda" {
   function_name = "switchboard-executor-${var.workflow_name}"
-  role          = var.iam_role_arn
+  role          = var.switchboard_role_arn
   handler       = var.executor_handler
-  runtime       = var.executor_runtime
+  runtime       = var.runtime
   filename      = "../executor/executor_lambda.zip"
   timeout       = 30
 

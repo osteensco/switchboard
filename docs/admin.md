@@ -116,8 +116,9 @@ The Switchboard AWS IAM setup consists of:
 
 5. **Developer IAM Policy:**
 
-An administrator must attach a policy with the following permissions to the developer's IAM user or role. 
-This policy grants the minimum permissions required to deploy and manage the a switchboard workflow's resources using Terraform.
+
+An administrator must create a policy or a group with the following permissions.
+These are the minimum permissions required to deploy and manage a switchboard workflow's resources using Terraform.
 
 ```json
 {
@@ -136,9 +137,21 @@ This policy grants the minimum permissions required to deploy and manage the a s
                 "lambda:DeleteEventSourceMapping",
                 "lambda:GetEventSourceMapping",
                 "lambda:UpdateEventSourceMapping",
-                "lambda:TagResource"
+                "lambda:TagResource",
+                "lambda:ListTags",
+				"lambda:ListVersionsByFunction",
+                "lambda:GetFunctionCodeSigningConfig"
             ],
-            "Resource": "arn:aws:lambda:*:<aws-account-id>:function:switchboard-*"
+            "Resource": [
+                "arn:aws:lambda:*:<aws-account-id>:function:switchboard-*",
+                "arn:aws:lambda:*:<aws-account-id>:event-source-mapping:*"
+            ]
+        },
+        {
+          "Sid": "ManageLambdaGetEventSourceMapping",
+          "Effect": "Allow",
+          "Action": "lambda:GetEventSourceMapping",
+          "Resource": "*"
         },
         {
             "Sid": "ManageSQS",
@@ -148,7 +161,8 @@ This policy grants the minimum permissions required to deploy and manage the a s
                 "sqs:DeleteQueue",
                 "sqs:GetQueueAttributes",
                 "sqs:SetQueueAttributes",
-                "sqs:TagQueue"
+                "sqs:TagQueue",
+                "sqs:ListQueueTags"
             ],
             "Resource": "arn:aws:sqs:*:<aws-account-id>:switchboard-*"
         },
@@ -159,14 +173,21 @@ This policy grants the minimum permissions required to deploy and manage the a s
                 "dynamodb:CreateTable",
                 "dynamodb:DeleteTable",
                 "dynamodb:DescribeTable",
-                "dynamodb:TagResource"
+                "dynamodb:DescribeTimeToLive",
+                "dynamodb:DescribeContinuousBackups",
+                "dynamodb:TagResource",
+                "dynamodb:ListTagsOfResource"
+
             ],
             "Resource": "arn:aws:dynamodb:*:<aws-account-id>:table/Switchboard*"
         },
         {
-            "Sid": "PassRoleForLambda",
+            "Sid": "PassGetRole",
             "Effect": "Allow",
-            "Action": "iam:PassRole",
+            "Action":  [
+                "iam:PassRole",
+                "iam:GetRole"
+            ],
             "Resource": "arn:aws:iam::<aws-account-id>:role/switchboard-role"
         }
     ]

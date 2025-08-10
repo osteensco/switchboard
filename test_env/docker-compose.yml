@@ -1,10 +1,11 @@
 
-version: '3.8'
 services:
   sb-cli-dev:
     build:
       context: ..
       dockerfile: test_env/Dockerfile
+    volumes:
+      - $HOME/.aws:/root/.aws:ro          # Read-only credentials and config
     working_dir: /app
     stdin_open: true
     tty: true

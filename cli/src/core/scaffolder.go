@@ -16,7 +16,7 @@ type TfvarsData struct {
 	CloudTfVars  map[string]string
 }
 
-func InitProject(name string, cloud string, lang string, tf_vars map[string]string, progress chan<- ProgressUpdate) error {
+func InitProject(name string, cloud string, lang string, progress chan<- ProgressUpdate) error {
 	defer close(progress)
 
 	progress <- ProgressUpdate{Message: fmt.Sprintf("Creating project directory: %s", name)}
@@ -92,7 +92,7 @@ func InitProject(name string, cloud string, lang string, tf_vars map[string]stri
 	defer os.Remove(templatePath)
 
 	// Fill out terraform variables based on the user's input for the new project
-	data := TfvarsData{WorkflowName: name, Language: lang, CloudTfVars: tf_vars}
+	data := TfvarsData{WorkflowName: name, Language: lang}
 	if err := tmpl.Execute(tformvarsFile, data); err != nil {
 		return fmt.Errorf("error executing template: %w", err)
 	}

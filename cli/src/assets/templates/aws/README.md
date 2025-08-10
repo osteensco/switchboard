@@ -18,6 +18,8 @@ You will need an access key and secret key from your administrator.
     aws configure
 ```
 
+**Note:** Switchboard assumes the aws account id you have configured is the accound id you will be deploying to.
+
 Your administrator should grant you permissions to manage Lambda, SQS, and DynamoDB resources. 
 The specific permissions required are listed in the "Developer IAM Policy" section of the admin docs (link in section below).
 
@@ -51,7 +53,8 @@ You successfully ran the `sb new` command and depending on what language you cho
 ```
 
 ### ! IMPORTANT !
-**Your iam_role_arn will be located in terraform/terraform.tfvars. Ensure that this file is not commited to version control. 
+<!-- TODO - delete this warning once secret terraform vars is fixed -->
+**The switchboard_role_arn will be located in terraform/terraform.tfvars. Ensure that this file is not commited to version control. 
 This should be automatically added to the .gitignore on project creation.**
 __________________________________________________________
 
