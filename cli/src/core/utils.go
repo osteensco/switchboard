@@ -55,6 +55,20 @@ var loadConfig = func() (*ProjectConfig, string, error) {
 	return &config, projectRoot, nil
 }
 
+var getArn = func(progress chan<- ProgressUpdate) (string, error) {
+
+	cmd := execCommand("aws", "iam", "get-role", "--role-name", "switchboard-role", "--query", "'Role.Arn'", "--output", "text")
+	cmd.Stderr = os.Stderr
+
+	arn, err := cmd.Output()
+	if err != nil {
+		progress <- ProgressUpdate{Message: fmt.Sprintf("Error querying for switchboard-role arn: %v", err)}
+		return string(arn), err
+	}
+
+	return string(arn), nil
+}
+
 var packageComponent = func(componentName string, config *ProjectConfig, projectRoot string, progress chan<- ProgressUpdate) error {
 	componentPath := filepath.Join(projectRoot, componentName)
 	progress <- ProgressUpdate{Message: fmt.Sprintf("Packaging %s...", componentName)}

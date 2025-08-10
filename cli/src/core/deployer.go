@@ -38,6 +38,23 @@ func DeployWorkflow(progress chan<- ProgressUpdate) error {
 	if err != nil {
 		return err
 	}
+	config, projectRoot, err := loadConfig()
+	if err != nil {
+		progress <- ProgressUpdate{Message: err.Error()}
+		return err
+	}
+	// Get cloud specific terraform information
+	env := os.Environ()
+	switch config.Cloud {
+	// alternative to running -
+	// 		export TF_VAR_switchboard_role_arn=$(aws iam get-role --role-name switchboard-role --query 'Role.Arn' --output text)
+	case "aws":
+		arn, err := getArn(progress)
+		if err != nil {
+			return err
+		}
+		env = append(env, "TF_VAR_switchboard_role_arn="+arn)
+	}
 
 	terraformDir := filepath.Join(projectRoot, "terraform")
 
@@ -45,6 +62,7 @@ func DeployWorkflow(progress chan<- ProgressUpdate) error {
 	initCmd.Dir = terraformDir
 	initCmd.Stdout = os.Stdout
 	initCmd.Stderr = os.Stderr
+	initCmd.Env = env
 	if err := initCmd.Run(); err != nil {
 		progress <- ProgressUpdate{Message: fmt.Sprintf("Error running terraform init: %v", err)}
 		return fmt.Errorf("error running terraform init: %w", err)
@@ -56,6 +74,7 @@ func DeployWorkflow(progress chan<- ProgressUpdate) error {
 	applyCmd.Dir = terraformDir
 	applyCmd.Stdout = os.Stdout
 	applyCmd.Stderr = os.Stderr
+	applyCmd.Env = env
 	if err := applyCmd.Run(); err != nil {
 		progress <- ProgressUpdate{Message: fmt.Sprintf("Error running terraform apply: %v", err)}
 		return fmt.Errorf("error running terraform apply: %w", err)

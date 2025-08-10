@@ -18,6 +18,8 @@ You will need an access key and secret key from your administrator.
     aws configure
 ```
 
+**Note:** Switchboard assumes the aws account id you have configured is the accound id you will be deploying to.
+
 Your administrator should grant you permissions to manage Lambda, SQS, and DynamoDB resources. 
 The specific permissions required are listed in the "Developer IAM Policy" section of the admin docs (link in section below).
 

@@ -46,25 +46,10 @@ var New = &cobra.Command{
 			}
 		}
 
-		// Get cloud specific terraform information
-		switch cloud {
-		// TODO
-		//	- Need a function to pass env variables to terraform like in the command below. This should provide a mechanism to pass secrets to terraform at runtime.
-		//	- Note: This will need to handle each cloud providers nuances.
-		// 		export TF_VAR_switchboard_role_arn=$(aws iam get-role --role-name switchboard-role --query 'Role.Arn' --output text)
-		case "aws":
-			var arn_prompt = "Please provide the switchboard-role arn."
-			tf_vars["switchboard_role_arn"], err = wizard.Input(arn_prompt, "arn:aws:iam::<account_id>:role/switchboard-role")
-			if err != nil {
-				fmt.Println(err)
-				os.Exit(1)
-			}
-		}
-
 		progress := make(chan core.ProgressUpdate)
 		var initErr error
 		go func() {
-			initErr = core.InitProject(workflow_name, cloud, lang, tf_vars, progress)
+			initErr = core.InitProject(workflow_name, cloud, lang, progress)
 		}()
 
 		for update := range progress {

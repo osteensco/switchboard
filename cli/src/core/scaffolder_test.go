@@ -20,9 +20,8 @@ func TestInitProject(t *testing.T) {
 			name:    "Python",
 			lang:    "py",
 			cloud:   "aws",
-			tf_vars: map[string]string{"switchboard_role_arn": "placeholder_arn"},
-			expectedContent: `switchboard_role_arn = "placeholder_arn"
-workflow_name = "my-test-project-py"
+			tf_vars: map[string]string{},
+			expectedContent: `workflow_name = "my-test-project-py"
 workflow_handler = "workflow.workflow_handler"
 executor_handler = "executor.lambda_handler"
 runtime = "python3.11"
@@ -110,7 +109,7 @@ runtime = "python3.11"
 				}
 			}()
 
-			initErr = InitProject(projectName, tc.cloud, tc.lang, tc.tf_vars, progress)
+			initErr = InitProject(projectName, tc.cloud, tc.lang, progress)
 			if initErr != nil {
 				t.Fatalf("InitProject failed: %v", initErr)
 			}
