@@ -118,7 +118,7 @@ The Switchboard AWS IAM setup consists of:
 
 
 An administrator must create a policy or a group with the following permissions.
-These are the minimum permissions required to deploy and manage the a switchboard workflow's resources using Terraform.
+These are the minimum permissions required to deploy and manage a switchboard workflow's resources using Terraform.
 
 ```json
 {
@@ -137,9 +137,21 @@ These are the minimum permissions required to deploy and manage the a switchboar
                 "lambda:DeleteEventSourceMapping",
                 "lambda:GetEventSourceMapping",
                 "lambda:UpdateEventSourceMapping",
-                "lambda:TagResource"
+                "lambda:TagResource",
+                "lambda:ListTags",
+				"lambda:ListVersionsByFunction",
+                "lambda:GetFunctionCodeSigningConfig"
             ],
-            "Resource": "arn:aws:lambda:*:<aws-account-id>:function:switchboard-*"
+            "Resource": [
+                "arn:aws:lambda:*:<aws-account-id>:function:switchboard-*",
+                "arn:aws:lambda:*:<aws-account-id>:event-source-mapping:*"
+            ]
+        },
+        {
+          "Sid": "ManageLambdaGetEventSourceMapping",
+          "Effect": "Allow",
+          "Action": "lambda:GetEventSourceMapping",
+          "Resource": "*"
         },
         {
             "Sid": "ManageSQS",
@@ -149,7 +161,8 @@ These are the minimum permissions required to deploy and manage the a switchboar
                 "sqs:DeleteQueue",
                 "sqs:GetQueueAttributes",
                 "sqs:SetQueueAttributes",
-                "sqs:TagQueue"
+                "sqs:TagQueue",
+                "sqs:ListQueueTags"
             ],
             "Resource": "arn:aws:sqs:*:<aws-account-id>:switchboard-*"
         },
@@ -160,20 +173,21 @@ These are the minimum permissions required to deploy and manage the a switchboar
                 "dynamodb:CreateTable",
                 "dynamodb:DeleteTable",
                 "dynamodb:DescribeTable",
-                "dynamodb:TagResource"
+                "dynamodb:DescribeTimeToLive",
+                "dynamodb:DescribeContinuousBackups",
+                "dynamodb:TagResource",
+                "dynamodb:ListTagsOfResource"
+
             ],
             "Resource": "arn:aws:dynamodb:*:<aws-account-id>:table/Switchboard*"
         },
         {
-            "Sid": "PassRoleForLambda",
+            "Sid": "PassGetRole",
             "Effect": "Allow",
-            "Action": "iam:PassRole",
-            "Resource": "arn:aws:iam::<aws-account-id>:role/switchboard-role"
-        },
-        {
-            "Sid": "AllowGetSwitchboardRole",
-            "Effect": "Allow",
-            "Action": "iam:GetRole",
+            "Action":  [
+                "iam:PassRole",
+                "iam:GetRole"
+            ],
             "Resource": "arn:aws:iam::<aws-account-id>:role/switchboard-role"
         }
     ]
