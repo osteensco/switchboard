@@ -93,6 +93,8 @@ The goal is to provide a user-friendly interface for initializing, building, and
 
  - [ ] Add dockerfile that executes a new project creation, deployment, and cleanup
     - Needs a new subdir in test_env or another folder entirely for integration tests
+    - Need a way to handle cleanup on failures (`terraform destroy` isn't necessarily going to work on all failures)
+
 
 ## Docs
 
