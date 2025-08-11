@@ -17,8 +17,15 @@ The goal is to provide a user-friendly interface for initializing, building, and
                 - `README.md` (with instructions for the user)
                 - `.gitignore`
 
-    - [ ] **`sb add <trigger_type>`**
-        - **Purpose**: Provide out-of-the-box trigger components for initiating workflows. (Cron, http endpoints, etc.)
+    - [ ] **`sb add trigger <trigger_type>`**
+        **NOTE:** Trigger addition should be in project setup phase as well
+        - **Purpose:** Provide out-of-the-box trigger components for initiating workflows. 
+            - Four types of triggers:
+                - Endpoint
+                - Scheduled
+                - Event Listener
+                - Queue subscriber
+            - Additional 'None' option on new project creation
         - **Actions:**
             - Maps `trigger_type` to predefined terraform scripts
             - Adds these terraform scripts to project's terraform directory
@@ -26,9 +33,15 @@ The goal is to provide a user-friendly interface for initializing, building, and
         - **Notes:**
             - Out-of-the-box triggers won't cover all use cases, but hopefully cover more common ones.
             - Custom added triggers
-                - Triggers need a way to be added to the SwitchBoardResources table manually
+                - Triggers need a way to be added to the SwitchboardResources table manually
 
- - [ ] **Deployer**
+    - [ ] **`sb tidy`**
+        - **Purpose:** Fix terraform scripts if custom resources were created after the fact
+            - This should mainly only apply to updating the tf portion that seeds the SwitchboardResources table in the database.
+        - **Actions:**
+            - TODO: figure out what actions would need to be taken exactly
+
+ - [x] **Deployer**
     - [x] **`sb package`**
         - **Purpose:** To create the `lambda_package.zip` deployment artifact.
         - **Actions:**
