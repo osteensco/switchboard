@@ -169,7 +169,7 @@ Switchboard is currently in active development. The Python SDK is the most matur
 
 Roadmap inclues:
 * [ ]   **CLI Tool:** For easy setup, management, and deployment of Switchboard resources.
-    * [ ] Commands (see TODO in cli)
+    * [ ] Commands (see TODO in cli dir)
     * [ ] Rich and interactive TUI
 * [ ]   **SDKs:** Bringing multi-language support to more developers.
     * [x] Python
@@ -178,12 +178,16 @@ Roadmap inclues:
 * [ ]   **Enhanced Observability:** Integrating logging, monitoring, and tracing.
     * [ ] Out-of-the-box default log sink
     * [ ] View and query logs through CLI tool
-* [ ]   **Advanced Configuration:** Get as far into the weeds as you see fit.
-    * [ ] Accessible templates with sound defaults
+* [x]   **Advanced Configuration:** Get as far into the weeds as you see fit.
+    * [x] Accessible templates with sound defaults
 * [ ]   **Comprehensive Documentation & Examples.**
     * [x] AWS demo with python
-    * [ ] Quickstart command in CLI
-    * [ ] Docs site
+    * [x] Quickstart command in CLI
+    * [ ] Docs (markdown files in repo)
+        * [x] Admin
+        * [ ] Quickstart guide
+        * [ ] SDK docs
+        * [ ] CLI Tool user manual
 
 ## Contributing
 

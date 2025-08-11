@@ -170,15 +170,18 @@ These are the minimum permissions required to deploy and manage a switchboard wo
             "Sid": "ManageDynamoDB",
             "Effect": "Allow",
             "Action": [
-                "dynamodb:CreateTable",
-                "dynamodb:DeleteTable",
-                "dynamodb:DescribeTable",
-                "dynamodb:DescribeTimeToLive",
-                "dynamodb:DescribeContinuousBackups",
-                "dynamodb:TagResource",
-                "dynamodb:ListTagsOfResource"
-
-            ],
+				"dynamodb:CreateTable",
+				"dynamodb:DeleteTable",
+				"dynamodb:DescribeTable",
+				"dynamodb:DescribeTimeToLive",
+				"dynamodb:DescribeContinuousBackups",
+				"dynamodb:TagResource",
+				"dynamodb:ListTagsOfResource",
+				"dynamodb:PutItem",
+				"dynamodb:GetItem",
+				"dynamodb:Scan",
+				"dynamodb:DeleteItem"
+			],
             "Resource": "arn:aws:dynamodb:*:<aws-account-id>:table/Switchboard*"
         },
         {

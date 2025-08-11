@@ -32,17 +32,19 @@ resource "aws_dynamodb_table" "resources_table" {
   }
 }
 
-resource "aws_dynambodb_table_item" "resource_items" {
-  for_each = { for item in var.switchboard_resources : item.component => item}
+resource "aws_dynamodb_table_item" "resource_items" {
+  for_each = { for i in var.switchboard_resources : i.component => i}
   table_name = aws_dynamodb_table.resources_table.name
   hash_key = aws_dynamodb_table.resources_table.hash_key
+  range_key  = aws_dynamodb_table.resources_table.range_key
 
   item = jsonencode({
-        component = each.value.component
-        name = each.value.name
-        url = each.value.url
-        cloud = each.value.cloud
-        resource = each.value.resource
-        resource_type = each.value.resource_type
+    component      = { S = each.value.component }
+    name           = { S = each.value.name }
+    url            = { S = each.value.url }
+    cloud          = { S = each.value.cloud }
+    resource       = { S = each.value.resource }
+    resource_type  = { S = each.value.resource_type }
+
   })
 }
