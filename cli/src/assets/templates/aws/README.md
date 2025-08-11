@@ -26,7 +26,6 @@ The specific permissions required are listed in the "Developer IAM Policy" secti
 ## Setup for Administrators
 
 Before a developer can deploy the project, an administrator must create certain IAM resources with the necessary permissions. 
-The iam_policy.json file is provided on creation of a new project for convenience. It is safe to remove once the appropriate IAM resources are created.
 [Details for the IAM resources setup can be found here.](https://github.com/osteensco/switchboard/blob/main/docs/admin.md)
 
 __________________________________________________________

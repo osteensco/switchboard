@@ -96,7 +96,8 @@ class AWS_DataInterface(DBInterface):
         }
 
         SwitchboardResources: {
-            "component":        "string",   // The type of component (see enums.SwitchboardComponent)
+            "component":        "string",   // Partition key - The type of component (see enums.SwitchboardComponent)
+            "name":             "string",   // Sort key — represents the workflow name
             "url":              "string",   // The endpoint url
             "cloud":            "string",   // The cloud provider (see enums.Cloud)
             "resource":         "string",   // The specific resource being used for the component (see enums.CloudResource)
@@ -172,11 +173,11 @@ class AWS_DataInterface(DBInterface):
 
         log.bind(
             component="db_service",
-            workflow="name"
+            workflow=name
         ).debug(f"DEBUG: Type of name: {type(name)}, value: {name}")
         log.bind(
             component="db_service",
-            workflow="name"
+            workflow=name
         ).debug(f"DEBUG: Type of table name: {type(tbl.table_name)}, value: {tbl.table_name}")
 
         response = tbl.query(
