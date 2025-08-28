@@ -76,18 +76,24 @@ The goal is to provide a user-friendly interface for initializing, building, and
 
 ------The specific sub commands for these need to be defined-------
  - [ ] **Components**
-    - [ ] **`sb component <command> <args>`**
+    **`sb component <command> <args>`**
         - **Purpose:** Provide component info to the user.
         - **Actions:**
             - Discover SwitchBoard resources that are deployed.
             - Display information to the user.
 
  - [ ] **Workflows**
-    - [ ] **`sb workflow <command> <args>`**
+   **`sb workflow <command> <args>`**
         - **Purpose:** Interact with specific workflows.
         - **Actions:**
             - View Workflow runs and states.
             - Manual trigger, retry, pause, stop, state change, etc of workflows.
+    - [] `sb workflow trigger <workflow name>`
+        - **Purpose:** Trigger the designated workflow. Attepmts to trigger the workflow of the current project if no workflow name is provided.
+        - **Actions:**
+            - Query Database for given workflow's invocation queue.
+            - Push preconfigured message to invocation queue to initialize a new workflow.
+        
 
 ## Testing
 
@@ -109,7 +115,13 @@ The goal is to provide a user-friendly interface for initializing, building, and
     - [ ] Update "url" field to be more descriptive (could be endpoint url, function name, or something else)
         - Alternatives: "id", "uri", "ref", "handle"
         - **IMPORTANT:** This may require updating the SDK
-    
+
+## Code Quality
+
+ - **Implement enums for:**
+    - [ ] SDK language
+    - [ ] Cloud provider
+    - [ ] Trigger type
 
 ## Configuration
 
