@@ -119,6 +119,7 @@ The goal is to provide a user-friendly interface for initializing, building, and
 ## Code Quality
 
  - **Implement enums for:**
+    -- May be unnecessary --
     - [ ] SDK language
     - [ ] Cloud provider
     - [ ] Trigger type

@@ -7,6 +7,8 @@ import (
 )
 
 var PackageFuncs = func(progress chan<- ProgressUpdate) error {
+	// TODO:
+	// may need to account for specific triggers and package an additional function
 	defer close(progress)
 
 	config, projectRoot, err := loadConfig()
@@ -30,6 +32,8 @@ var PackageFuncs = func(progress chan<- ProgressUpdate) error {
 }
 
 func DeployWorkflow(progress chan<- ProgressUpdate) error {
+	// TODO:
+	// may need to account for specific triggers and deploy an additional function
 	defer close(progress)
 
 	config, projectRoot, err := loadConfig()

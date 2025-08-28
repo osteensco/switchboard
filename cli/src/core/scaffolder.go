@@ -2,6 +2,7 @@ package core
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -118,7 +119,21 @@ func InitProject(name string, cloud string, lang string, progress chan<- Progres
 	return nil
 }
 
-func AddTrigger(trigger string) {
+func AddTrigger(trigger string, name string, lang string, cloud string) error {
 	// TODO implement different out-of-the-box triggers
 	fmt.Println("Trigger added: " + trigger)
+	// Progress channel won't be used in this function, so progress should be updated immediately after wherever function is called
+	switch trigger {
+	// copy appropriate terraform
+	// copy necessary source code
+	case "endpoint":
+	case "cron":
+	case "listener":
+	case "subscribrer":
+	case "custom":
+	default:
+		return errors.New(fmt.Sprintf("Invalid trigger type provided: '%s'", trigger))
+	}
+
+	return nil
 }
