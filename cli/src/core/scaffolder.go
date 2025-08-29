@@ -123,6 +123,28 @@ func AddTrigger(trigger string, name string, lang string, cloud string) error {
 	// TODO implement different out-of-the-box triggers
 	fmt.Println("Trigger added: " + trigger)
 	// Progress channel won't be used in this function, so progress should be updated immediately after wherever function is called
+	if trigger == "custom" {
+		// Enable custom trigger
+		// TODO: what info is needed to add trigger to SwitchboardResources table?
+	}
+	switch cloud {
+	// copy appropriate terraform
+	// copy necessary source code
+	case "aws":
+		createAWSTrigger(trigger, name, lang)
+	case "gcp":
+		createGCPTrigger(trigger, name, lang)
+	case "azure":
+		createAzureTrigger(trigger, name, lang)
+	default:
+		return errors.New(fmt.Sprintf("Invalid cloud provided: '%s'", cloud))
+	}
+
+	return nil
+}
+
+func createAWSTrigger(trigger string, name string, lang string) error {
+	// Progress channel won't be used in this function, so progress should be updated immediately after wherever function is called
 	switch trigger {
 	// copy appropriate terraform
 	// copy necessary source code
@@ -130,10 +152,16 @@ func AddTrigger(trigger string, name string, lang string, cloud string) error {
 	case "cron":
 	case "listener":
 	case "subscribrer":
-	case "custom":
 	default:
 		return errors.New(fmt.Sprintf("Invalid trigger type provided: '%s'", trigger))
 	}
+	return nil
+}
 
+func createGCPTrigger(trigger string, name string, lang string) error {
+	return nil
+}
+
+func createAzureTrigger(trigger string, name string, lang string) error {
 	return nil
 }
