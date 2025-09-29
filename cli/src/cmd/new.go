@@ -45,11 +45,27 @@ var New = &cobra.Command{
 				os.Exit(1)
 			}
 		}
+		if trigger == "" {
+			var triggerOptions = []string{"endpoint", "cron", "listener", "subscriber", "custom"}
+			var triggerTitle = "Choose a prefabricated trigger, or implement a custom one."
+			// TODO - What additional information is needed for custom triggers?
+			trigger, err = wizard.Select(triggerOptions, triggerTitle)
+			if err != nil {
+				fmt.Println(err)
+				os.Exit(1)
+			}
+		}
 
 		progress := make(chan core.ProgressUpdate)
 		var initErr error
+		config := core.ProjectConfig{
+			Name:     workflow_name,
+			Cloud:    cloud,
+			Language: lang,
+			Trigger:  trigger,
+		}
 		go func() {
-			initErr = core.InitProject(workflow_name, cloud, lang, progress)
+			initErr = core.InitProject(config, progress)
 		}()
 
 		for update := range progress {

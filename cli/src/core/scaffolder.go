@@ -2,7 +2,6 @@ package core
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -17,24 +16,32 @@ type TfvarsData struct {
 	CloudTfVars  map[string]string
 }
 
-func InitProject(name string, cloud string, lang string, progress chan<- ProgressUpdate) error {
+func InitProject(config ProjectConfig, progress chan<- ProgressUpdate) error {
+	// TODO
+	//	- ensure idempotency
+	//	- break down into smaller functions so individual portions can be rebuilt
+	//		- renaming project, changing desired trigger, migrating to a different cloud, etc.
 	defer close(progress)
 
-	progress <- ProgressUpdate{Message: fmt.Sprintf("Creating project directory: %s", name)}
-	projectName := name
+	progress <- ProgressUpdate{Message: fmt.Sprintf("Creating project directory: %s", config.Name)}
+	projectName := config.Name
 	if err := os.Mkdir(projectName, 0755); err != nil {
 		return fmt.Errorf("error creating project directory: %w", err)
 	}
 
 	progress <- ProgressUpdate{Message: "Creating subdirectories..."}
+
 	workflowDir := filepath.Join(projectName, "workflow")
 	executorDir := filepath.Join(projectName, "executor")
 	terraformDir := filepath.Join(projectName, "terraform")
-	for _, dir := range []string{workflowDir, executorDir, terraformDir} {
+	triggerDir := filepath.Join(projectName, "trigger")
+	for _, dir := range []string{workflowDir, executorDir, terraformDir, triggerDir} {
 		if err := os.Mkdir(dir, 0755); err != nil {
 			return fmt.Errorf("error creating subdirectory %s: %w", dir, err)
 		}
 	}
+
+	AddTrigger(config, progress)
 
 	progress <- ProgressUpdate{Message: "Copying template files..."}
 	templateRoot := "templates"
@@ -43,11 +50,12 @@ func InitProject(name string, cloud string, lang string, progress chan<- Progres
 	// We are building out a basic project for the user here, so we will generate:
 	//	- Workflow source code
 	//	- Executor source code
+	//	- Trigger source code (if applicable)
 	//	- All required terraform
 	// 	- Readme, gitignore, and supporting cloud assets like iam policies or service accounts
 
 	// Copy language-specific files
-	langTemplatePath := filepath.Join(templateRoot, cloud, lang)
+	langTemplatePath := filepath.Join(templateRoot, config.Cloud, config.Language)
 
 	// Copy workflow files
 	if err := copyFiles(langTemplatePath, workflowDir); err != nil {
@@ -66,12 +74,12 @@ func InitProject(name string, cloud string, lang string, progress chan<- Progres
 	}
 
 	// Copy generic root files
-	if err := copyFiles(filepath.Join(templateRoot, cloud), projectName); err != nil {
+	if err := copyFiles(filepath.Join(templateRoot, config.Cloud), projectName); err != nil {
 		return fmt.Errorf("error copying generic files: %w", err)
 	}
 
 	// Copy terraform
-	terraformTemplatePath := filepath.Join(templateRoot, cloud, "terraform")
+	terraformTemplatePath := filepath.Join(templateRoot, config.Cloud, "terraform")
 	if err := copyDirectory(terraformTemplatePath, terraformDir); err != nil {
 		return fmt.Errorf("error copying terraform files: %w", err)
 	}
@@ -85,7 +93,7 @@ func InitProject(name string, cloud string, lang string, progress chan<- Progres
 	}
 	defer tformvarsFile.Close()
 
-	templatePath := filepath.Join(templateRoot, cloud, "terraform", "terraform.tfvars.tmpl")
+	templatePath := filepath.Join(templateRoot, config.Cloud, "terraform", "terraform.tfvars.tmpl")
 	tmpl, err := template.ParseFS(assets.Templates, templatePath)
 	if err != nil {
 		return fmt.Errorf("error parsing template: %w", err)
@@ -93,18 +101,13 @@ func InitProject(name string, cloud string, lang string, progress chan<- Progres
 	defer os.Remove(templatePath)
 
 	// Fill out terraform variables based on the user's input for the new project
-	data := TfvarsData{WorkflowName: name, Language: lang}
+	data := TfvarsData{WorkflowName: config.Name, Language: config.Language}
 	if err := tmpl.Execute(tformvarsFile, data); err != nil {
 		return fmt.Errorf("error executing template: %w", err)
 	}
 
 	// Create switchboard.json
 	progress <- ProgressUpdate{Message: "Creating switchboard.json..."}
-	config := ProjectConfig{
-		Name:     name,
-		Language: lang,
-		Cloud:    cloud,
-	}
 	configData, err := json.MarshalIndent(config, "", "  ")
 	if err != nil {
 		return fmt.Errorf("error marshalling config: %w", err)
@@ -119,49 +122,55 @@ func InitProject(name string, cloud string, lang string, progress chan<- Progres
 	return nil
 }
 
-func AddTrigger(trigger string, name string, lang string, cloud string) error {
-	// TODO implement different out-of-the-box triggers
-	fmt.Println("Trigger added: " + trigger)
-	// Progress channel won't be used in this function, so progress should be updated immediately after wherever function is called
-	if trigger == "custom" {
+func AddTrigger(config ProjectConfig, progress chan<- ProgressUpdate) error {
+
+	var err error
+	progress <- ProgressUpdate{Message: "Implementing Trigger..."}
+
+	if config.Trigger == "custom" {
 		// Enable custom trigger
 		// TODO: what info is needed to add trigger to SwitchboardResources table?
 	}
-	switch cloud {
+	switch config.Cloud {
 	// copy appropriate terraform
 	// copy necessary source code
 	case "aws":
-		createAWSTrigger(trigger, name, lang)
+		err = createAWSTrigger(config)
 	case "gcp":
-		createGCPTrigger(trigger, name, lang)
+		err = createGCPTrigger(config)
 	case "azure":
-		createAzureTrigger(trigger, name, lang)
+		err = createAzureTrigger(config)
 	default:
-		return errors.New(fmt.Sprintf("Invalid cloud provided: '%s'", cloud))
+		err = fmt.Errorf("Invalid cloud provided: '%s'", config.Cloud)
 	}
+	if err != nil {
+		return err
+	}
+
+	progress <- ProgressUpdate{Message: "Trigger added: " + config.Trigger}
 
 	return nil
 }
 
-func createAWSTrigger(trigger string, name string, lang string) error {
-	// Progress channel won't be used in this function, so progress should be updated immediately after wherever function is called
-	switch trigger {
+func createAWSTrigger(config ProjectConfig) error {
+	switch config.Trigger {
 	// copy appropriate terraform
 	// copy necessary source code
 	case "endpoint":
+		// TODO - implement me :)
 	case "cron":
 	case "listener":
 	case "subscribrer":
 	default:
-		return errors.New(fmt.Sprintf("Invalid trigger type provided: '%s'", trigger))
+		return fmt.Errorf("Invalid trigger type provided: '%s'", config.Trigger)
 	}
 	return nil
 }
 
-func createGCPTrigger(trigger string, name string, lang string) error {
+func createGCPTrigger(config ProjectConfig) error {
 	return nil
 }
 
-func createAzureTrigger(trigger string, name string, lang string) error {
+func createAzureTrigger(config ProjectConfig) error {
 	return nil
 }

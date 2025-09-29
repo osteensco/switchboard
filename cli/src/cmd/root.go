@@ -49,16 +49,16 @@ func init() {
 	New.Flags().StringVarP(&workflow_name, "name", "n", "", "Provide the name for your workflow.")
 	New.Flags().StringVarP(&cloud, "cloud", "c", "", "Select Cloud provider ('aws', 'gcp', or 'azure')")
 	New.Flags().StringVarP(&lang, "lang", "l", "", "Select project's programming language ('py', 'ts', or 'go')")
+	New.Flags().StringVarP(&trigger, "trigger", "t", "", "Choose a prefabricated trigger, or implement a custom one ('endpoint', 'cron', 'listener', 'subscriber', or 'custom')")
 
 	Logs.Flags().StringVarP(&workflow_name, "name", "n", "", "Provide the name for your workflow.")
 	Logs.Flags().StringVarP(&logQuery, "query", "q", "", "Provide the query for the logs.")
 
 	rootCmd.AddCommand(New)
-	rootCmd.AddCommand(Add)
+	// rootCmd.AddCommand(Add)
 	rootCmd.AddCommand(Package)
 	rootCmd.AddCommand(Deploy)
 	rootCmd.AddCommand(Teardown)
 	rootCmd.AddCommand(Logs)
 
-	return
 }

@@ -9,18 +9,21 @@ import (
 
 func TestInitProject(t *testing.T) {
 	testCases := []struct {
-		name            string
-		lang            string
-		cloud           string
+		config          ProjectConfig
 		tf_vars         map[string]string
 		expectedContent string
 		expectedFiles   []string
 	}{
 		{
-			name:    "Python",
-			lang:    "py",
-			cloud:   "aws",
+			config: ProjectConfig{
+				Name:     "Python",
+				Language: "py",
+				Cloud:    "aws",
+				Trigger:  "endpoint",
+			},
 			tf_vars: map[string]string{},
+
+			// TODO - add expected trigger related stuff
 			expectedContent: `workflow_name = "my-test-project-py"
 workflow_handler = "workflow.workflow_handler"
 executor_handler = "executor.lambda_handler"
@@ -83,7 +86,7 @@ runtime = "python3.11"
 	}
 
 	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
+		t.Run(tc.config.Name, func(t *testing.T) {
 			// Create a temporary directory for the test
 			tmpDir, err := os.MkdirTemp("", "test-project-")
 			if err != nil {
@@ -99,7 +102,7 @@ runtime = "python3.11"
 			defer os.Chdir(originalDir)
 			os.Chdir(tmpDir)
 
-			projectName := "my-test-project-" + tc.lang
+			projectName := "my-test-project-" + tc.config.Language
 			progress := make(chan ProgressUpdate)
 			var initErr error
 
@@ -109,7 +112,7 @@ runtime = "python3.11"
 				}
 			}()
 
-			initErr = InitProject(projectName, tc.cloud, tc.lang, progress)
+			initErr = InitProject(tc.config, progress)
 			if initErr != nil {
 				t.Fatalf("InitProject failed: %v", initErr)
 			}

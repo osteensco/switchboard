@@ -10,4 +10,5 @@ type ProjectConfig struct {
 	Name     string `json:"name"`
 	Language string `json:"language"`
 	Cloud    string `json:"cloud"`
+	Trigger  string `json:"trigger"`
 }
