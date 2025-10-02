@@ -4,16 +4,16 @@ default: all
 
 all: pycoverage gocoverage
 
-py-tests:
+sdk-py-test:
 	cd ./sdk/py && pytest
 
-pycoverage:
+sdk-py-coverage:
 	cd ./sdk/py && coverage run -m pytest && coverage report
 
-go-tests:
+cli-test:
 	cd ./cli/src && go test ./core
 
-gocoverage:
+cli-coverage:
 	cd ./cli/src && go test -coverprofile=coverage.out ./core && go tool cover -func=coverage.out
 
 cli-sandbox:

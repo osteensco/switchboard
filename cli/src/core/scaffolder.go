@@ -31,56 +31,70 @@ func InitProject(config ProjectConfig, progress chan<- ProgressUpdate) error {
 
 	progress <- ProgressUpdate{Message: "Creating subdirectories..."}
 
-	workflowDir := filepath.Join(projectName, "workflow")
-	executorDir := filepath.Join(projectName, "executor")
-	terraformDir := filepath.Join(projectName, "terraform")
-	triggerDir := filepath.Join(projectName, "trigger")
-	for _, dir := range []string{workflowDir, executorDir, terraformDir, triggerDir} {
-		if err := os.Mkdir(dir, 0755); err != nil {
-			return fmt.Errorf("error creating subdirectory %s: %w", dir, err)
-		}
+	projectDir := projectPaths{
+		Workflow:  filepath.Join(projectName, "workflow"),
+		Executor:  filepath.Join(projectName, "executor"),
+		Terraform: filepath.Join(projectName, "terraform"),
+		Trigger:   filepath.Join(projectName, "trigger"),
 	}
 
-	AddTrigger(config, progress)
+	// Create all project directories
+	if err := os.Mkdir(projectDir.Workflow, 0755); err != nil {
+		return fmt.Errorf("error creating subdirectory %s: %w", projectDir.Workflow, err)
+	}
+	if err := os.Mkdir(projectDir.Executor, 0755); err != nil {
+		return fmt.Errorf("error creating subdirectory %s: %w", projectDir.Executor, err)
+	}
+	if err := os.Mkdir(projectDir.Terraform, 0755); err != nil {
+		return fmt.Errorf("error creating subdirectory %s: %w", projectDir.Terraform, err)
+	}
+	if err := os.Mkdir(projectDir.Trigger, 0755); err != nil {
+		return fmt.Errorf("error creating subdirectory %s: %w", projectDir.Trigger, err)
+	}
 
 	progress <- ProgressUpdate{Message: "Copying template files..."}
-	templateRoot := "templates"
 
 	// Template files can be found in cli/src/assets/templates
 	// We are building out a basic project for the user here, so we will generate:
+	//	- Trigger source code (if applicable)
 	//	- Workflow source code
 	//	- Executor source code
-	//	- Trigger source code (if applicable)
 	//	- All required terraform
 	// 	- Readme, gitignore, and supporting cloud assets like iam policies or service accounts
 
-	// Copy language-specific files
-	langTemplatePath := filepath.Join(templateRoot, config.Cloud, config.Language)
+	templateDir := templatePaths{
+		Root:      "templates",
+		Language:  filepath.Join("templates", config.Cloud, config.Language),
+		Terraform: filepath.Join("templates", config.Cloud, "terraform"),
+		Triggers:  filepath.Join("templates", config.Cloud, "triggers"),
+	}
+
+	// Copy necessary trigger related files
+	AddTrigger(projectDir, templateDir, config, progress)
 
 	// Copy workflow files
-	if err := copyFiles(langTemplatePath, workflowDir); err != nil {
+	if err := copyFiles(templateDir.Language, projectDir.Workflow); err != nil {
 		return fmt.Errorf("error copying workflow files: %w", err)
 	}
-	if err := copyFiles(filepath.Join(langTemplatePath, "workflow"), workflowDir); err != nil {
+	if err := copyFiles(filepath.Join(templateDir.Language, "workflow"), projectDir.Workflow); err != nil {
 		return fmt.Errorf("error copying workflow files: %w", err)
 	}
 
 	// Copy executor files
-	if err := copyFiles(langTemplatePath, executorDir); err != nil {
+	if err := copyFiles(templateDir.Language, projectDir.Executor); err != nil {
 		return fmt.Errorf("error copying executor files: %w", err)
 	}
-	if err := copyFiles(filepath.Join(langTemplatePath, "executor"), executorDir); err != nil {
+	if err := copyFiles(filepath.Join(templateDir.Language, "executor"), projectDir.Executor); err != nil {
 		return fmt.Errorf("error copying workflow files: %w", err)
 	}
 
 	// Copy generic root files
-	if err := copyFiles(filepath.Join(templateRoot, config.Cloud), projectName); err != nil {
+	if err := copyFiles(filepath.Join(templateDir.Root, config.Cloud), projectName); err != nil {
 		return fmt.Errorf("error copying generic files: %w", err)
 	}
 
 	// Copy terraform
-	terraformTemplatePath := filepath.Join(templateRoot, config.Cloud, "terraform")
-	if err := copyDirectory(terraformTemplatePath, terraformDir); err != nil {
+	if err := copyDirectory(templateDir.Terraform, projectDir.Terraform); err != nil {
 		return fmt.Errorf("error copying terraform files: %w", err)
 	}
 
@@ -93,7 +107,7 @@ func InitProject(config ProjectConfig, progress chan<- ProgressUpdate) error {
 	}
 	defer tformvarsFile.Close()
 
-	templatePath := filepath.Join(templateRoot, config.Cloud, "terraform", "terraform.tfvars.tmpl")
+	templatePath := filepath.Join(templateDir.Root, config.Cloud, "terraform", "terraform.tfvars.tmpl")
 	tmpl, err := template.ParseFS(assets.Templates, templatePath)
 	if err != nil {
 		return fmt.Errorf("error parsing template: %w", err)
@@ -122,7 +136,7 @@ func InitProject(config ProjectConfig, progress chan<- ProgressUpdate) error {
 	return nil
 }
 
-func AddTrigger(config ProjectConfig, progress chan<- ProgressUpdate) error {
+func AddTrigger(projectDir projectPaths, templateDir templatePaths, config ProjectConfig, progress chan<- ProgressUpdate) error {
 
 	var err error
 	progress <- ProgressUpdate{Message: "Implementing Trigger..."}
@@ -132,10 +146,8 @@ func AddTrigger(config ProjectConfig, progress chan<- ProgressUpdate) error {
 		// TODO: what info is needed to add trigger to SwitchboardResources table?
 	}
 	switch config.Cloud {
-	// copy appropriate terraform
-	// copy necessary source code
 	case "aws":
-		err = createAWSTrigger(config)
+		err = createAWSTrigger(projectDir, templateDir, config)
 	case "gcp":
 		err = createGCPTrigger(config)
 	case "azure":
@@ -152,12 +164,23 @@ func AddTrigger(config ProjectConfig, progress chan<- ProgressUpdate) error {
 	return nil
 }
 
-func createAWSTrigger(config ProjectConfig) error {
+func createAWSTrigger(projectDir projectPaths, templateDir templatePaths, config ProjectConfig) error {
 	switch config.Trigger {
-	// copy appropriate terraform
-	// copy necessary source code
 	case "endpoint":
-		// TODO - implement me :)
+		// copy necessary source code
+		sourcecodePath := filepath.Join(templateDir.Triggers, config.Trigger, config.Language)
+		// TODO - may need to end up using copyDirectory here instead
+		if err := copyFiles(sourcecodePath, projectDir.Trigger); err != nil {
+			return fmt.Errorf("error copying trigger source code files: %w", err)
+		}
+
+		// copy appropriate terraform
+		terraformPath := filepath.Join(templateDir.Triggers, config.Trigger)
+		triggerTfPath := filepath.Join(projectDir.Terraform, "modules", "trigger")
+		if err := copyFiles(terraformPath, triggerTfPath); err != nil {
+			return fmt.Errorf("error copying trigger's terraform files: %w", err)
+		}
+
 	case "cron":
 	case "listener":
 	case "subscribrer":
@@ -166,6 +189,9 @@ func createAWSTrigger(config ProjectConfig) error {
 	}
 	return nil
 }
+
+// TODO
+//	- teardown functions for triggers? (and other components)
 
 func createGCPTrigger(config ProjectConfig) error {
 	return nil

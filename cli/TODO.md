@@ -12,6 +12,7 @@ The goal is to provide a user-friendly interface for initializing, building, and
                 - `workflow`
                 - `executor`
                 - `tasks`
+                - `trigger/..` (all necessary trigger related source code)
                 - `terraform/...` (all necessary `.tf` files)
                 - `requirements.txt` (or equivalent)
                 - `README.md` (with instructions for the user)
@@ -20,12 +21,12 @@ The goal is to provide a user-friendly interface for initializing, building, and
     - [ ] **`sb add trigger <trigger_type>`**
         **NOTE:** Trigger addition should be in project setup phase as well
         - **Purpose:** Provide out-of-the-box trigger components for initiating workflows. 
-            - Four types of triggers:
+            - Four types of triggers, and the option to implement a custom trigger using the sdk:
                 - Endpoint
-                - Scheduled
+                - Cron
                 - Event Listener
                 - Queue subscriber
-            - Additional 'None' option on new project creation
+                - Custom
         - **Actions:**
             - Maps `trigger_type` to predefined terraform scripts
             - Adds these terraform scripts to project's terraform directory
@@ -173,6 +174,11 @@ templates
    │   ├── `.dist`
    │   ├── `workflow_lambda.zip`
    │   ├── workflow.py
+   │   └── requirements.txt
+   ├── trigger (endpoint trigger shown here)
+   │   ├── `.dist`
+   │   ├── `endpoint_lambda.zip`
+   │   ├── endpoint.py
    │   └── requirements.txt
    ├── .gitignore
    ├── iam_policy.json
