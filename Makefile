@@ -1,8 +1,8 @@
-.PHONY: default all py-tests go-tests pycoverage gocoverage cli-sandbox
+.PHONY: default all sdk-py-test cli-test sdk-py-coverage cli-coverage cli-sandbox
 
 default: all
 
-all: pycoverage gocoverage
+all: sdk-py-coverage cli-coverage
 
 sdk-py-test:
 	cd ./sdk/py && pytest
