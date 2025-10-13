@@ -9,18 +9,21 @@ import (
 
 func TestInitProject(t *testing.T) {
 	testCases := []struct {
-		name            string
-		lang            string
-		cloud           string
+		config          ProjectConfig
 		tf_vars         map[string]string
 		expectedContent string
 		expectedFiles   []string
 	}{
 		{
-			name:    "Python",
-			lang:    "py",
-			cloud:   "aws",
+			config: ProjectConfig{
+				Name:     "my-test-project-py",
+				Language: "py",
+				Cloud:    "aws",
+				Trigger:  "endpoint",
+			},
 			tf_vars: map[string]string{},
+
+			// TODO - add expected trigger related stuff
 			expectedContent: `workflow_name = "my-test-project-py"
 workflow_handler = "workflow.workflow_handler"
 executor_handler = "executor.lambda_handler"
@@ -29,7 +32,6 @@ runtime = "python3.11"
 			expectedFiles: []string{
 				".gitignore",
 				"README.md",
-				"iam_policy.json",
 				"workflow/workflow.py",
 				"workflow/requirements.txt",
 				"executor/executor.py",
@@ -39,6 +41,10 @@ runtime = "python3.11"
 				"terraform/variables.tf",
 				"terraform/outputs.tf",
 				"terraform/modules/lambda/main.tf",
+				"terraform/modules/trigger/main.tf",
+				"terraform/modules/trigger/outputs.tf",
+				"terraform/modules/trigger/variables.tf",
+				"trigger/endpoint.py",
 			},
 		},
 
@@ -83,9 +89,9 @@ runtime = "python3.11"
 	}
 
 	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
+		t.Run(tc.config.Name, func(t *testing.T) {
 			// Create a temporary directory for the test
-			tmpDir, err := os.MkdirTemp("", "test-project-")
+			tmpDir, err := os.MkdirTemp("", tc.config.Name)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -99,7 +105,6 @@ runtime = "python3.11"
 			defer os.Chdir(originalDir)
 			os.Chdir(tmpDir)
 
-			projectName := "my-test-project-" + tc.lang
 			progress := make(chan ProgressUpdate)
 			var initErr error
 
@@ -109,21 +114,35 @@ runtime = "python3.11"
 				}
 			}()
 
-			initErr = InitProject(projectName, tc.cloud, tc.lang, progress)
+			initErr = InitProject(tc.config, progress)
 			if initErr != nil {
 				t.Fatalf("InitProject failed: %v", initErr)
 			}
 
 			// Check that the expected directories and files are created
 			for _, file := range tc.expectedFiles {
-				fullPath := filepath.Join(projectName, file)
+				fullPath := filepath.Join(tc.config.Name, file)
 				if _, err := os.Stat(fullPath); os.IsNotExist(err) {
 					t.Errorf("Expected file or directory to exist: %s", fullPath)
 				}
 			}
 
+			// For debug purposes uncomment
+			// dir, err := os.Open(tc.config.Name)
+			// if err != nil {
+			// 	t.Logf("Error opening directory: %v\n", err)
+			// 	return
+			// }
+			// fileInfos, err := dir.Readdir(0) // 0 means read all entries
+			// if err != nil {
+			// 	t.Logf("Error reading directory: %v\n", err)
+			// 	return
+			// }
+			// t.Log(fileInfos)
+			// dir.Close()
+
 			// Check the content of terraform.tfvars
-			tformvarsPath := filepath.Join(projectName, "terraform", "terraform.tfvars")
+			tformvarsPath := filepath.Join(tc.config.Name, "terraform", "terraform.tfvars")
 			content, err := os.ReadFile(tformvarsPath)
 			if err != nil {
 				t.Fatal(err)

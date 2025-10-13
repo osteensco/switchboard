@@ -19,9 +19,9 @@ func TestPackageFuncs(t *testing.T) {
 	}()
 
 	testCases := []struct {
-		name string
-		setupMocks func()
-		expectedErr error
+		name             string
+		setupMocks       func()
+		expectedErr      error
 		expectedProgress []string
 	}{
 		{
@@ -102,7 +102,6 @@ func TestPackageFuncs(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			// Set up mocks for the current test case
 			tc.setupMocks()
-			
 
 			progress := make(chan ProgressUpdate, 10) // Buffered channel
 			var receivedUpdates []string
@@ -157,7 +156,6 @@ func TestDeployWorkflow(t *testing.T) {
 		t.Fatal(err)
 	}
 
-
 	originalExecCommand := execCommand
 	defer func() { execCommand = originalExecCommand }()
 	var capturedCmds [][]string
@@ -173,11 +171,12 @@ func TestDeployWorkflow(t *testing.T) {
 
 	expectedCmds := [][]string{
 		{"terraform", "init"},
+		{"terraform", "validate"},
 		{"terraform", "apply", "-auto-approve"},
 	}
 
 	if len(capturedCmds) != len(expectedCmds) {
-		t.Fatalf("Expected %d commands, but got %d", len(expectedCmds), len(capturedCmds))
+		t.Fatalf("Expected %d commands, but got %d.\n   Actual commands received: %v", len(expectedCmds), len(capturedCmds), capturedCmds)
 	}
 
 	for i, expected := range expectedCmds {
@@ -187,6 +186,7 @@ func TestDeployWorkflow(t *testing.T) {
 	}
 
 	expectedUpdates := []string{
+		"Verifying project is packaged for deployment...",
 		"Initializing and applying Terraform...",
 		"Workflow deployed successfully.",
 	}
@@ -224,7 +224,6 @@ func TestTeardownWorkflow(t *testing.T) {
 	if err := os.Chdir(tmpDir); err != nil {
 		t.Fatal(err)
 	}
-
 
 	originalExecCommand := execCommand
 	defer func() { execCommand = originalExecCommand }()
@@ -268,3 +267,4 @@ func TestTeardownWorkflow(t *testing.T) {
 		t.Errorf("Expected progress updates %v, but got %v", expectedUpdates, receivedUpdates)
 	}
 }
+

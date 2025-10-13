@@ -55,6 +55,20 @@ var loadConfig = func() (*ProjectConfig, string, error) {
 	return &config, projectRoot, nil
 }
 
+// Public method for package level config retrieval
+func GetConfig() (map[string]string, error) {
+	config, _, err := loadConfig()
+	if err != nil {
+		return map[string]string{}, err
+	}
+
+	return map[string]string{
+		"name":  config.Name,
+		"lang":  config.Language,
+		"cloud": config.Cloud,
+	}, nil
+}
+
 var getArn = func(progress chan<- ProgressUpdate) (string, error) {
 
 	cmd := execCommand("aws", "iam", "get-role", "--role-name", "switchboard-role", "--query", "Role.Arn", "--output", "text")

@@ -1,19 +1,19 @@
-.PHONY: default all py-tests go-tests pycoverage gocoverage cli-sandbox
+.PHONY: default all sdk-py-test cli-test sdk-py-coverage cli-coverage cli-sandbox
 
 default: all
 
-all: pycoverage gocoverage
+all: sdk-py-coverage cli-coverage
 
-py-tests:
+sdk-py-test:
 	cd ./sdk/py && pytest
 
-pycoverage:
+sdk-py-coverage:
 	cd ./sdk/py && coverage run -m pytest && coverage report
 
-go-tests:
+cli-test:
 	cd ./cli/src && go test ./core
 
-gocoverage:
+cli-coverage:
 	cd ./cli/src && go test -coverprofile=coverage.out ./core && go tool cover -func=coverage.out
 
 cli-sandbox:

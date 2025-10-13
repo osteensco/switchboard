@@ -17,6 +17,13 @@ module "iam" {
   switchboard_role_arn = var.switchboard_role_arn
 }
 
+module "trigger" {
+  source = "./modules/trigger"
+  # TODO 
+  # Add trigger to db
+  #   - likely should utilize tfvars.tmpl
+}
+
 module "dynamodb" {
   source = "./modules/dynamodb"
   switchboard_resources = [
