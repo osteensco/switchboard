@@ -29,7 +29,7 @@ def workflow_handler(event, context):
     # This loads the state for the current run or creates a new one.
     InitWorkflow(
         cloud=Cloud.AWS,
-        name="myworkflow",  # <-- TODO: Autopopulate workflow name
+        name="myworkflow",  # <-- TODO: Autopopulate workflow name. We should grab from the switchboard.json to get this. It must match the name provided in the Trigger object.
         db=db,
         context=sb_context
     )

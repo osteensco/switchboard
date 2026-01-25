@@ -77,19 +77,19 @@ The goal is to provide a user-friendly interface for initializing, building, and
 
 ------The specific sub commands for these need to be defined-------
  - [ ] **Components**
-    **`sb component <command> <args>`**
+    - [ ] `sb component <command> <args>`
         - **Purpose:** Provide component info to the user.
         - **Actions:**
             - Discover SwitchBoard resources that are deployed.
             - Display information to the user.
 
  - [ ] **Workflows**
-   **`sb workflow <command> <args>`**
+    - [ ] `sb workflow <command> <args>`
         - **Purpose:** Interact with specific workflows.
         - **Actions:**
             - View Workflow runs and states.
             - Manual trigger, retry, pause, stop, state change, etc of workflows.
-    - [] `sb workflow trigger <workflow name>`
+    - [ ] `sb workflow trigger <workflow name>`
         - **Purpose:** Trigger the designated workflow. Attepmts to trigger the workflow of the current project if no workflow name is provided.
         - **Actions:**
             - Query Database for given workflow's invocation queue.
@@ -185,5 +185,14 @@ templates
    ├── README.md
    └── terraform/
 ```
+
+
+## Product Notes
+  - Most orgs are going to have their own devops pipelines. 
+    switchboard should provide terraform, jenkins, and CDK scripts that enable users to integrate easily into their own abstractions.
+  - Log sinks should be set up in such a way to easily utilize third party observability tools.
+
+
+
 
 

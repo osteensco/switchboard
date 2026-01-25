@@ -19,6 +19,14 @@ module "iam" {
 
 module "trigger" {
   source = "./modules/trigger"
+
+  switchboard_role_arn         = module.iam.switchboard_role_arn
+  invocation_queue_arn = module.sqs.invocation_queue_arn
+  invocation_queue_url = module.sqs.invocation_queue_url
+  
+  workflow_name = var.workflow_name
+  trigger_handler = var.trigger_handler // TODO ???????
+  runtime = var.runtime
   # TODO 
   # Add trigger to db
   #   - likely should utilize tfvars.tmpl

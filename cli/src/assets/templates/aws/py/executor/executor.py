@@ -7,9 +7,9 @@ from .tasks import task_map
 
 
 # This is the entry point for the task executor.
-# The `lambda_handler` is invoked by the cloud provider (e.g., AWS Lambda)
+# The `executor_handler` is invoked by the cloud provider (e.g., AWS Lambda)
 # with a payload from the executor queue.
-def lambda_handler(event, context):
+def executor_handler(event, context):
     """
     Handles the execution of a single task.
 
