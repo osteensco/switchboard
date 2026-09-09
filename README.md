@@ -13,38 +13,43 @@
 
 ## What is Switchboard?
 
-Switchboard is a lightweight, event-driven, and serverless state machine that provides glue-as-a-service. 
-It allows you to define and orchestrate complex workflows across microservices using simple, declarative code in your preferred language.
-Switchboard is built to be cloud-agnostic and provides managed service abstractions without managed service cost.
+Switchboard is a serverless orchestration and durable-execution framework that turns native cloud primitives into a workflow runtime. 
+Write workflows as ordinary code, deploy them into your existing cloud environment, and get durable state, retries, parallelism, observability, and long-running execution without operating a seperate orchestration service.
+Switchboard is built to be cloud-agnostic and provides managed-orchestration ergonomics without a dedicated orchestration service. Switchboard achieves this by leveraging existing cloud primitives, making it ideal for teams already heavily invested in serverless cloud infrastructure.
 
  - **Glue-as-A-Service** -
     Writing glue code manually for every workflow is repetitive, error-prone, and complex. It forces you to focus on infrastructure plumbing instead of business logic.
-    Switchboard provides a structured framework and an SDK that abstracts away this complexity, effectively acting as pre-fabricated, high-quality glue.
+    Switchboard provides a structured framework and SDK that abstracts away this complexity into reusable, pre-fabricated orchestration infrastructure.
 
  - **Orchestration-as-Code** - 
-    Instead of relying on complex, hard-to-manage infrastructure or proprietary platform services, Switchboard empowers you to define your orchestration logic as code. 
-    This makes your orchestration logic more transparent, testable, faster to develop and deploy, and easier to debug.
+    Switchboard lets you define orchestration logic as ordinary application code rather than through a proprietary workflow language or external configuration. 
+    This keeps workflow behavior transparent, testable, easier to develop and debug, and versioned alongside the application itself.
+
+ - **Durable Execution** - 
+    Switchboard persists workflow progress so execution can survive failures, retries, process termination, and long-running waits. 
+    This durability extends across individual tasks and services within the same workflow, allowing execution to safely resume without rebuilding state or manually coordinating retries and idempotency.
 
 
 ## Key Features
 
-*   **Multi-Language Support:** A Python SDK is currently available. Go and TypeScript SDKs are under development.
-*   **Orchestration-as-Code:** Define your workflows using your preferred language. No complex YAML or JSON configurations, just logic flow and simple functions from the SDK.
-*   **Robust CLI Tool:** Run commands with the CLI tool or use the TUI to add or update your workflows, view logs, manage components, and discover resources - all in one place.
-*   **Cloud-Agnostic by Design:** The Switchboard architecture is designed with pluggable interfaces for any cloud environment, providing robust defaults while empowering custom implementations.
-*   **Prefabricated Cloud Components:** Focus on business and orchestration logic instead of cloud infrastructure and plumbing.
-*   **Handles Long-Running Jobs:** Switchboard seamlessly manages the state of long-running tasks without requiring you to build complex polling or callback mechanisms.
-*   **Cost-Effective:** Utilize managed service level abstractions while avoiding the cost of a managed service.
-*   **Fully Open Source:** Switchboard is fully open-sourced and community-driven.
+*   **Native Cloud Runtime:** Switchboard uses standard cloud primitives such as serverless functions, message queues, databases, and logging services as the underlying workflow runtime. No dedicated orchestration service is required.
+*   **Durable Execution:** Persist workflow progress across task execution, failures, retries, process termination, and long-running waits.
+*   **Orchestration-as-Code:** Define workflows using ordinary application code rather than YAML, JSON, or a proprietary workflow definition language.
+*   **Prefabricated Infrastructure:** Deploy the infrastructure required for orchestration using reusable templates with sound defaults, while retaining the ability to customize the underlying cloud resources.
+*   **Long-Running Workflows:** Coordinate work that spans seconds, hours, or longer without keeping compute continuously running or building custom polling and callback infrastructure.
+*   **Cloud-Agnostic Architecture:** Switchboard uses pluggable cloud interfaces so the same execution model can be implemented using the native primitives of different cloud providers.
+*   **Integrated Developer Tooling:** Switchboard's CLI is designed to provide a single interface for deploying workflows, inspecting executions, viewing logs, managing resources, and troubleshooting failures.
+*   Multi-Language SDKs: Python is currently supported, with Go and TypeScript SDKs planned.
+*   **Open Source:** Switchboard is fully open source under the Apache 2.0 License.
 
 ## How it Works
 
-Switchboard's architecture is simple and robust, relying on standard cloud primitives.
+Switchboard builds a durable workflow runtime from standard cloud primitives. A deployment consists of four primary components:
 
-1.  **Workflow:** A serverless function that runs your orchestration, defined in code.
-2.  **Database:** Persists the state of every workflow run, as well as enabling discoverability of switchboard's components.
-3.  **Message Queues:** Enables decoupled componenets to reliably trigger workflows, task executors, and receive their responses.
-4.  **Executor:** A serverless function that executes or triggers execution of your individual tasks (your business logic).
+1. **Workflow:** A serverless function containing your orchestration logic. Workflow execution is replayable and progresses from persisted state rather than relying on a continuously running process.
+2. **State Store:** Persists workflow execution state, task status, intermediate data, and metadata required to resume and inspect workflow runs.
+3. **Message Queues:** Reliably decouple workflow execution from task execution and carry invocations and responses between components.
+4. **Executor:** Dispatches individual units of work. Tasks can execute directly within the executor or invoke external services while Switchboard coordinates their completion.
 
 A typical workflow execution looks like this:
 
@@ -61,6 +66,8 @@ Trigger ─► Invocation Queue ◄─┐
                  ▼            |
              Response ────────┘
 ```
+
+Each response advances the persisted workflow state and re-invokes the workflow, allowing execution to continue without keeping the orchestrator continuously running.
 
 ## Getting Started (Python Example)
 
@@ -125,6 +132,10 @@ task_map = {
 }
 ```
 
+**NOTE**: Tasks may execute directly within the executor or dispatch work to external services. 
+For synchronous tasks, completion can be observed directly. For asynchronously dispatched work, the executing service sends a response back to Switchboard when the work is complete. 
+This allows workflows to coordinate distributed services without treating message delivery as task completion.
+
 ### 2. Define your workflow
 
 In your main handler, define the orchestration logic using the Switchboard SDK.
@@ -146,11 +157,11 @@ def workflow_handler(context):
         context=context
     )
 
+    # Execute a single task and wait for it to complete, optionally define number of retries
+    Call("process_data_task", retries=3)
+    
     # Retrieve data passed between workflow steps or from executed tasks
     data = GetCache()
-
-    # Execute a single task and wait for it to complete
-    Call("process_data_task")
 
     # Conditionally execute multiple tasks in parallel
     if data["some_bool_field"]:
